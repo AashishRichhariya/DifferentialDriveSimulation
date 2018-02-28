@@ -1,0 +1,16 @@
+/home/robot/Documents/DifferentialDrive/AprilTags/build/CMakeFiles/install/strip.dir
+/home/robot/Documents/DifferentialDrive/AprilTags/build/CMakeFiles/rebuild_cache.dir
+/home/robot/Documents/DifferentialDrive/AprilTags/build/CMakeFiles/edit_cache.dir
+/home/robot/Documents/DifferentialDrive/AprilTags/build/CMakeFiles/install.dir
+/home/robot/Documents/DifferentialDrive/AprilTags/build/CMakeFiles/apriltags.dir
+/home/robot/Documents/DifferentialDrive/AprilTags/build/CMakeFiles/tmp.dir
+/home/robot/Documents/DifferentialDrive/AprilTags/build/CMakeFiles/list_install_components.dir
+/home/robot/Documents/DifferentialDrive/AprilTags/build/CMakeFiles/install/local.dir
+/home/robot/Documents/DifferentialDrive/AprilTags/build/example/CMakeFiles/imu.dir
+/home/robot/Documents/DifferentialDrive/AprilTags/build/example/CMakeFiles/install/strip.dir
+/home/robot/Documents/DifferentialDrive/AprilTags/build/example/CMakeFiles/rebuild_cache.dir
+/home/robot/Documents/DifferentialDrive/AprilTags/build/example/CMakeFiles/edit_cache.dir
+/home/robot/Documents/DifferentialDrive/AprilTags/build/example/CMakeFiles/install.dir
+/home/robot/Documents/DifferentialDrive/AprilTags/build/example/CMakeFiles/list_install_components.dir
+/home/robot/Documents/DifferentialDrive/AprilTags/build/example/CMakeFiles/apriltags_demo.dir
+/home/robot/Documents/DifferentialDrive/AprilTags/build/example/CMakeFiles/install/local.dir

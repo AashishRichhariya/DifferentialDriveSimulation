@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -g  -shared -Wl,-soname,libcontroller.so -o lib/libcontroller.so CMakeFiles/controller.dir/src/controllers.cpp.o  -L/home/robot/Documents/DifferentialDriveSimulation/AprilTags/build/lib 

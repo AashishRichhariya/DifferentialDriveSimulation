@@ -1,0 +1,28 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../include/Serial.h
+string
+-
+
+/home/robot/Documents/DifferentialDriveSimulation/src/Serial.cpp
+fcntl.h
+-
+termios.h
+-
+stdlib.h
+-
+iostream
+-
+sstream
+-
+unistd.h
+-
+Serial.h
+/home/robot/Documents/DifferentialDriveSimulation/src/Serial.h
+

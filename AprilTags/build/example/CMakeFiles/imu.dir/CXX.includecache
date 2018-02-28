@@ -1,0 +1,40 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/robot/Documents/DifferentialDrive/AprilTags/example/Serial.cpp
+fcntl.h
+-
+termios.h
+-
+stdlib.h
+-
+iostream
+-
+sstream
+-
+unistd.h
+-
+Serial.h
+/home/robot/Documents/DifferentialDrive/AprilTags/example/Serial.h
+
+/home/robot/Documents/DifferentialDrive/AprilTags/example/Serial.h
+string
+-
+
+/home/robot/Documents/DifferentialDrive/AprilTags/example/imu.cpp
+iostream
+-
+string
+-
+stdio.h
+-
+math.h
+-
+Serial.h
+/home/robot/Documents/DifferentialDrive/AprilTags/example/Serial.h
+

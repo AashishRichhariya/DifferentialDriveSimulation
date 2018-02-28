@@ -1,0 +1,30 @@
+changing the sync flag from synchronous rx/tx, to no flag gave the required communication. But the char sent does not match the one received
+zigbee does not provide any official user interface for the computer. It acts as a serial port which can be accessed by linux system calls. Thus the format of information(protocol) has to be decided by the user using linux calls.
+the plan is to send the global coordinates of the target and continuously send the current coordinates to robot. The robot would use them to plan the path to goal
+another approach would be give the initial coordinates and robot's location and the goal coordinates. The robot would then use the wheel encoders to approximate it's location and chart it's path according to the relative distance between goal and itself
+the second approach would be faster since it would not have to wait for input over the network which is much slower than processor speed.
+apriltags show us six attributes of the tag in front of the camera. Their meaning is to be understood since that many coordinates should not be possible to tell using a camera without depth perception.
+only basic characters have been tested with zigbee. We have to see how much we can send at once and their format
+zigbee can send any amount of data from computer(due to presence of tty driver) but not on robot.On robot, it does so in chunks of 8 bits. We have iteratively read from port in byte sized chunks and decide on an end of communication terminal symbol.
+need to check the buffer available on robot for uart.
+apriltags uses camera to find 6d pose. 3d pose can be calculated. Required function is not yet found.
+able to send the camera coordinates over the zigbee. Need to transform the 6d pose to 3d
+zigbees can communicate only if their pan id is set to same value. driver programming does not allow programming this and other values. Hence to configure the zigbees, first use XCTU to set the values and then use the zigbees as any other serial device.
+camera setup is proving to be harder than thought. Apart from 6d pose, camera needs to be calibrated for accurate reading. The camera will be at an angle with the surface. To get accurate reading, we need to specify intrinsic parameters of camera to calibration program to generate the required transformation. Some factors affecting input are skew factor, focal length, lens distortion,size of cards, etc. The pixel coordinates are usually not good representation of world coordinates and thus the need for calibration.ref:https://www.cs.umd.edu/class/fall2013/cmsc426/lectures/camera-calibration.pdf, http://dsp.stackexchange.com/questions/2736/step-by-step-camera-pose-estimation-for-visual-tracking-and-planar-markers, https://en.wikipedia.org/wiki/Homography_(computer_vision), http://www.cs.cmu.edu/~16385/lectures/Lecture16.pdf
+camera calibration has two highly cited papers which are widely used today. ref:https://www.vision.caltech.edu/bouguetj/calib_doc/papers/Tsai.pdf, http://research.microsoft.com/en-us/um/people/zhang/Papers/TR98-71.pdf
+6d pose estimation is more general version of planar homography transformation that uses the mesh models and texture mappings of the objects and compare with their images to find their pose in the image.
+camera calibration simply ensures that the world coordinates and rotation scale well to camera coordinates nad rotation.
+april tags require the intrinsic parameters to be fed. without them the results are wrong. also if the tags are not of same size, the error would be huge in the value of translation coordinates.ref:http://wiki.lofarolabs.com/index.php/Using_the_AprilTags_Glyph_Recognition_System
+the autofocus of the camera needs to be disabled. Use uvcdynctrl -v -d video1 --set='Focus,Auto' 0
+to check the current status use: uvcdynctrl -v -d -video --get='Focus, Auto'
+Don't forget to calibrate the camera using calibration sample program given in the opencv samples
+the calibration and autofocus don't matter much. The accuracy remains the same. Can use as it is
+
+let's call (1,0,0) as x_pos and (0,1,0) as y_pos and (0,0,0) as origin. We find their transformation using the pnp matrix. we find the vector between x_pos and origin, and y_pos and origin to find the new x axis and y axis vectors. Then for every new april tag, we do the same as above, but we project the new coordinates along the x and y axises by taking their projections(dot product). And since the points are on the same plane, the new coordinates are bound to be completely represented by these two projections.
+you have to initialize a static class variable outside class body and not inside some function or constructor. It should be initialized like you define a function of a class
+Only static const variables are allowed to be initialized in class body
+reference need to be initialized to a memory location before using them as regular pointers(using assignment). Using assignment on uninitialized reference variables throws error
+when you make a static function variable, it is shared among all instances as well like a class static variable
+always start the program with gdb
+have small testing programs to test proper working condition of the equipment like the zigbees, the velocity commands for testing etc
+having a log file for the execution run helps
