@@ -113,7 +113,7 @@ int main(int argc, char* argv[]) {
   //cvtColor(image, image_gray, CV_BGR2GRAY);
 
   
-  int robotCount = 4;  
+  int robotCount = 8;  
   //tag id should also not go beyond max_robots
   vector<vector<nd>> tp;//a map that would be shared among all
   vector<bot_config> bots(robotCount,bot_config(10, 10,130,tp));

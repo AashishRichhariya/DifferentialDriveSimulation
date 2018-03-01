@@ -328,6 +328,13 @@ void PathPlannerGrid::findshortest(AprilInterfaceAndVideoCapture &testbed){
     t = world_grid[t.first][t.second].parent;
   }
 }
+bool PathPlannerGrid::checkReachStatus(pair <int, int> t, robot_pose &ps, double reach_distance)
+{
+  if(t.first != start_grid_x || t.second != start_grid_y || (index_travelled +1) < path_points.size()){//ensure the robot is continuing from the last point, and that no further planning occurs until the robot reaches the required point
+      return 0;
+  }
+  return 1;
+}
 
 void PathPlannerGrid::addBacktrackPointToStackAndPath(stack<pair<int,int> > &sk,vector<pair<int,int> > &incumbent_cells,int &ic_no,int ngr, int ngc,pair<int,int> &t,AprilInterfaceAndVideoCapture &testbed){
   if(ic_no){
@@ -497,7 +504,7 @@ void PathPlannerGrid::BSACoverageIncremental(AprilInterfaceAndVideoCapture &test
       cout<<"bot presnce for current cells: "<<world_grid[start_grid_x][start_grid_y].bot_presence.first<<" "<<world_grid[start_grid_x][start_grid_y].bot_presence.second<<endl;
       cout<<"     \n\n";
 
-      if(t.first != start_grid_x || t.second != start_grid_y || (index_travelled +1) < path_points.size()){//ensure the robot is continuing from the last point, and that no further planning occurs until the robot reaches the required point
+      if(!checkReachStatus(t, ps, reach_distance)){//ensure the robot is continuing from the last point, and that no further planning occurs until the robot reaches the required point
         cout<<"the robot has not yet reached the old target"<<t.first<<" "<<t.second<<endl;
         return;
       }
@@ -1046,7 +1053,7 @@ void PathPlannerGrid::BSACoverageWithUpdatedBactrackSelection(AprilInterfaceAndV
         last_grid_x = start_grid_x;
         last_grid_y = start_grid_y;
       }    
-    if(t.first != start_grid_x || t.second != start_grid_y || (index_travelled +1) < path_points.size()){//ensure the robot is continuing from the last point, and that no further planning occurs until the robot reaches the required point
+    if(!checkReachStatus(t, ps, reach_distance)){//ensure the robot is continuing from the last point, and that no further planning occurs until the robot reaches the required point
         cout<<"the robot has not yet reached the old target"<<t.first<<" "<<t.second<<endl;
         return;
       }
@@ -1583,7 +1590,7 @@ void PathPlannerGrid::BoustrophedonMotionWithUpdatedBactrackSelection(AprilInter
           last_grid_x = start_grid_x;
           last_grid_y = start_grid_y;
         }    
-      if(t.first != start_grid_x || t.second != start_grid_y || (index_travelled +1) < path_points.size()){//ensure the robot is continuing from the last point, and that no further planning occurs until the robot reaches the required point
+      if(!checkReachStatus(t, ps, reach_distance)){//ensure the robot is continuing from the last point, and that no further planning occurs until the robot reaches the required point
           cout<<"the robot has not yet reached the old target"<<t.first<<" "<<t.second<<endl;
           return;
         }
@@ -1859,7 +1866,7 @@ void PathPlannerGrid::FAST(AprilInterfaceAndVideoCapture &testbed, robot_pose &p
           last_grid_x = start_grid_x;
           last_grid_y = start_grid_y;
         }    
-      if(t.first != start_grid_x || t.second != start_grid_y || (index_travelled +1) < path_points.size()){//ensure the robot is continuing from the last point, and that no further planning occurs until the robot reaches the required point
+      if(!checkReachStatus(t, ps, reach_distance)){//ensure the robot is continuing from the last point, and that no further planning occurs until the robot reaches the required point
           cout<<"the robot has not yet reached the old target"<<t.first<<" "<<t.second<<endl;
           return;
         }
@@ -2203,8 +2210,14 @@ void PathPlannerGrid::setPathColor(){
     case 2: path_color = cv::Scalar(0, 255, 255); break;
     case 3: path_color = cv::Scalar(255, 0, 255); break;
     case 4: path_color = cv::Scalar(255, 255, 0); break;
-    case 5: path_color = cv::Scalar(0, 255, 0); break;
-    default: path_color = cv::Scalar(0, 0, 0);
+    case 5: path_color = cv::Scalar(128, 255, 0); break;
+    case 6: path_color = cv::Scalar(232, 124, 64); break;
+    case 7: path_color = cv::Scalar(84, 25, 237); break;
+    case 8: path_color = cv::Scalar(48, 143, 225); break;
+    case 9: path_color = cv::Scalar(74, 125, 232); break;
+    case 10: path_color = cv::Scalar(85, 252, 64); break;
+    case 11: path_color = cv::Scalar(23, 55, 25); break;
+    default: path_color = cv::Scalar(204, 126, 73);
   }
 }
 

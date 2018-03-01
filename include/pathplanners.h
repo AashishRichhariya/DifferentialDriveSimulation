@@ -162,8 +162,8 @@ class PathPlannerGrid{
     void discoverPatch(int patch_count, int r, int c);
     void repartition(vector<PathPlannerGrid> &bots);
     void drawRobot(cv::Mat &image);
-
-    
+ 
+    bool checkReachStatus(pair <int, int> t, robot_pose &ps, double reach_distance);    
     
 };
 
