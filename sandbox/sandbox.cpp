@@ -112,8 +112,10 @@ int main(int argc, char* argv[]) {
   //image = imread("../Maps/Basic.png");
   //cvtColor(image, image_gray, CV_BGR2GRAY);
 
+  int robotCount = 4;  
+  cout<<"Enter the number of robots: ";
+  cin>>robotCount;
   
-  int robotCount = 8;  
   //tag id should also not go beyond max_robots
   vector<vector<nd>> tp;//a map that would be shared among all
   vector<bot_config> bots(robotCount,bot_config(10, 10,130,tp));
@@ -124,8 +126,8 @@ int main(int argc, char* argv[]) {
   "1: BSA-CM (Basic)\n" 
   "2: BSA-CM with updated Backtrack Search\n" 
   "3: Boustrophedon Motion With Updated Bactrack Search\n"
-  "4: FAST\n"
-  "5: Voronoi Partition Based Online Coverage\n"
+  "4: Boustrophedon Motion With BSA_CM like Backtracking\n" 
+  "5: BoB\n"
   "\nEnter here: ";
   cin>>algo_select;
 
@@ -165,10 +167,10 @@ int main(int argc, char* argv[]) {
     if(first_iter)
     {
      	first_iter = 0;
-    	if(algo_select==5)
-    	{
-    		bots[0].plan.defineVoronoiPartition(testbed, planners);
-    	}    	
+    	//if(algo_select==5)
+    	//{
+    		//bots[0].plan.defineVoronoiPartition(testbed, planners);
+    	//}    	
     }
  
     for(int i = 0;i<bots.size();i++){      
@@ -183,8 +185,8 @@ int main(int argc, char* argv[]) {
       case 1: bots[i].plan.BSACoverageIncremental(testbed,bots[i].pose, 2.5,planners); break;
       case 2: bots[i].plan.BSACoverageWithUpdatedBactrackSelection(testbed,bots[i].pose, 2.5,planners); break;
       case 3: bots[i].plan.BoustrophedonMotionWithUpdatedBactrackSelection(testbed,bots[i].pose, 2.5,planners); break;
-      case 4: bots[i].plan.FAST(testbed,bots[i].pose, 2.5,planners); break;
-      case 5: bots[i].plan.VoronoiPartitionBasedOnlineCoverage(testbed,bots[i].pose, 2.5,planners); break;
+      case 4: bots[i].plan.BoustrophedonMotionWithBSA_CMlikeBacktracking(testbed,bots[i].pose, 2.5,planners); break;    
+      case 5: bots[i].plan.BoB(testbed,bots[i].pose, 2.5,planners); break;      
       default: bots[i].plan.BSACoverageIncremental(testbed,bots[i].pose, 2.5,planners);   
       }   
     }

@@ -141,8 +141,9 @@ class PathPlannerGrid{
     void DeadlockReplan(AprilInterfaceAndVideoCapture &testbed, vector<PathPlannerGrid> &bots);
     //following 3 functions were added for the updated backtrack search Algo
     int checkBactrackCondition(pair<int, int> p1, pair <int, int> p2);
-    bool checkBactrackValidityForBSA_CM(pair <int, int> t);
+    bool checkBactrackValidityForBoB(pair <int, int> t);
     bool bactrackValidityForBSA_CM(pair <int, int> t, int nx, int ny, int j);
+    bool bactrackValidityForBoB(pair <int, int> t, int nx, int ny, int j);
     void BSACoverageWithUpdatedBactrackSelection(AprilInterfaceAndVideoCapture &testbed, robot_pose &ps, double reach_distance, vector<PathPlannerGrid> &bots);
     void initializeBactrackSearchMatrix();//to initialize the matrix which help in backtrack search, namely blockedcellcheck
     void BoustrophedonMotionWithUpdatedBactrackSelection(AprilInterfaceAndVideoCapture &testbed, robot_pose &ps, double reach_distance, vector<PathPlannerGrid> &bots);
@@ -151,7 +152,7 @@ class PathPlannerGrid{
 
     void BSA_CMSearchForBTAmongstUEV(AprilInterfaceAndVideoCapture &testbed, vector<PathPlannerGrid> &bots, vector<pair<int,int> > &incumbent_cells, int ic_no, stack<pair<int,int> > &sk);
 
-    void FAST(AprilInterfaceAndVideoCapture &testbed, robot_pose &ps, double reach_distance, vector<PathPlannerGrid> &bots);
+    void BoustrophedonMotionWithBSA_CMlikeBacktracking(AprilInterfaceAndVideoCapture &testbed, robot_pose &ps, double reach_distance, vector<PathPlannerGrid> &bots);
 
     void setPathColor();//to set the color of path
 
@@ -163,7 +164,9 @@ class PathPlannerGrid{
     void repartition(vector<PathPlannerGrid> &bots);
     void drawRobot(cv::Mat &image);
  
-    bool checkReachStatus(pair <int, int> t, robot_pose &ps, double reach_distance);    
+    bool checkReachStatus(pair <int, int> t, robot_pose &ps, double reach_distance);
+
+    void BoB(AprilInterfaceAndVideoCapture &testbed, robot_pose &ps, double reach_distance, vector<PathPlannerGrid> &bots);    
     
 };
 
