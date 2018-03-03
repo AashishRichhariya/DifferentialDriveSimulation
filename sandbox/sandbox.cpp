@@ -172,7 +172,8 @@ int main(int argc, char* argv[]) {
       		c = rand()%bots[0].plan.ccells;
       	}
       	//bots[i].plan.path_points.push_back(pt(r, c));
-      	bots[i].plan.addGridCellToPath(r, c, testbed);      	
+      	bots[i].plan.addGridCellToPath(r, c, testbed);
+      	bots[i].plan.world_grid[r][c].steps = 1;      	
       	bots[i].pose.x = r;
       	bots[i].pose.y = c;
       	bots[i].pose.omega = rand()%4;
@@ -195,8 +196,13 @@ int main(int argc, char* argv[]) {
       planners[i] = bots[i].plan;
     }
     
-
+    pair <int, int> wheel_velocities;//dummy variable in case of simulation
     for(int i = 0;i<bots.size();i++){
+    	bots[i].plan.next_target_index = bots[i].plan.index_travelled+1;        
+        if((bots[i].plan.next_target_index) < bots[i].plan.path_points.size())
+        {
+        	if(!check_collision_possibility(testbed, planners, bots, wheel_velocities, i)) bots[i].plan.index_travelled++;        	
+        }
       cout<<"planning for id "<<i<<endl;
       switch(algo_select)
       {
@@ -209,18 +215,18 @@ int main(int argc, char* argv[]) {
       default: bots[i].plan.BSACoverageIncremental(testbed,bots[i].pose, 2.5,planners);   
       }   
     }
-    pair <int, int> wheel_velocities;//dummy variable in case of simulation
+    /*pair <int, int> wheel_velocities;//dummy variable in case of simulation
     for(int i = 0;i<bots.size();i++){            
         bots[i].plan.next_target_index = bots[i].plan.index_travelled+1;        
         if((bots[i].plan.next_target_index) < bots[i].plan.path_points.size())
         {
         	if(!check_collision_possibility(testbed, planners, bots, wheel_velocities, i)) bots[i].plan.index_travelled++;        	
         }
-        /*else{
-			bots[i].plan.target_grid_cell = make_pair(bots[i].plan.start_grid_x,bots[i].plan.start_grid_y);
-		}   */     
+        //else{
+		//	bots[i].plan.target_grid_cell = make_pair(bots[i].plan.start_grid_x,bots[i].plan.start_grid_y);
+		//}        
    	}
-    
+    */
     
     bots[0].plan.drawGrid(image, planners);
    	for(int i = 0;i<bots.size();i++){      	
@@ -242,9 +248,40 @@ int main(int argc, char* argv[]) {
       cout << "  " << 10./(t-last_t) << " fps" << endl;
       last_t = t;
     }
-    if (cv::waitKey(0) == 27){
+    int fla = 0;
+    for(int i = 0; i < bots.size()-1; i++)
+    {
+    	for(int j=i+1; j < bots.size(); j++)
+    	{
+    		if(bots[i].plan.path_points[bots[i].plan.index_travelled].x == bots[j].plan.path_points[bots[j].plan.index_travelled].x)
+    		{
+    			if(bots[i].plan.path_points[bots[i].plan.index_travelled].y == bots[j].plan.path_points[bots[j].plan.index_travelled].y)
+    			{
+    				cout<<"Q!$*%*&%^@*($!!@#^)@!&%$\n";
+    				cout<<"bots in same cell!\n";
+    				cout<<"i, j: "<<i<<" "<<j<<endl;
+    				fla = 1;
+    			}
+    		}
+    	}
+    }
+    if(fla==1)break;
+    if (cv::waitKey(1) == 27){
+
         break;//until escape is pressed
     }
   }
+  imshow(windowName,image);
+
+  cout<<"***********************\n***************\n";
+    	for(int i = 0; i < bots.size(); i++)
+    	{
+    		cout<<"id: "<<bots[i].plan.robot_tag_id<<endl;
+    		cout<<"path points size(): "<<bots[i].plan.path_points.size()<<endl;
+    		cout<<"index_travelled: "<<bots[i].plan.index_travelled<<endl;
+    		cout<<"next_target_index: "<<bots[i].plan.next_target_index<<endl;
+    		cout<<"current points: "<<bots[i].plan.path_points[bots[i].plan.index_travelled].x<<" "<<bots[i].plan.path_points[bots[i].plan.index_travelled].y<<endl;
+    	}
+    cv::waitKey(0);
   return 0;
 }
