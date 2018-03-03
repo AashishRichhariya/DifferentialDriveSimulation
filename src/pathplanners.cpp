@@ -521,6 +521,8 @@ void PathPlannerGrid::BSACoverageIncremental(AprilInterfaceAndVideoCapture &test
     world_grid[start_grid_x][start_grid_y].bot_presence = make_pair(1, robot_tag_id);
     last_grid_x = start_grid_x;
     last_grid_y = start_grid_y;
+    start_cell_x = start_grid_x;
+    start_cell_y = start_grid_y;
     target_grid_cell = make_pair(start_grid_x, start_grid_y);
     addGridCellToPath(start_grid_x,start_grid_y,testbed);//add the current robot position as target point on first call, on subsequent calls the robot position would already be on the stack from the previous call assuming the function is called only when the robot has reached the next point
     return;//added the first spiral point
@@ -1072,6 +1074,8 @@ void PathPlannerGrid::BSACoverageWithUpdatedBactrackSelection(AprilInterfaceAndV
     world_grid[start_grid_x][start_grid_y].bot_presence = make_pair(1, robot_tag_id);
     last_grid_x = start_grid_x;
     last_grid_y = start_grid_y;
+    start_cell_x = start_grid_x;
+    start_cell_y = start_grid_y;
     target_grid_cell = make_pair(start_grid_x, start_grid_y);
     addGridCellToPath(start_grid_x,start_grid_y,testbed);//add the current robot position as target point on first call, on subsequent calls the robot position would already be on the stack from the previous call assuming the function is called only when the robot has reached the next point
     return;//added the first spiral point
@@ -1609,6 +1613,8 @@ void PathPlannerGrid::BoustrophedonMotionWithUpdatedBactrackSelection(AprilInter
       world_grid[start_grid_x][start_grid_y].bot_presence = make_pair(1, robot_tag_id);
       last_grid_x = start_grid_x;
       last_grid_y = start_grid_y;
+      start_cell_x = start_grid_x;
+      start_cell_y = start_grid_y;
       target_grid_cell = make_pair(start_grid_x, start_grid_y);
       addGridCellToPath(start_grid_x,start_grid_y,testbed);//add the current robot position as target point on first call, on subsequent calls the robot position would already be on the stack from the previous call assuming the function is called only when the robot has reached the next point
       
@@ -1885,6 +1891,8 @@ void PathPlannerGrid::BoustrophedonMotionWithBSA_CMlikeBacktracking(AprilInterfa
       world_grid[start_grid_x][start_grid_y].bot_presence = make_pair(1, robot_tag_id);
       last_grid_x = start_grid_x;
       last_grid_y = start_grid_y;
+      start_cell_x = start_grid_x;
+      start_cell_y = start_grid_y;
       target_grid_cell = make_pair(start_grid_x, start_grid_y);
       addGridCellToPath(start_grid_x,start_grid_y,testbed);//add the current robot position as target point on first call, on subsequent calls the robot position would already be on the stack from the previous call assuming the function is called only when the robot has reached the next point
       
@@ -2132,6 +2140,8 @@ void PathPlannerGrid::BoB(AprilInterfaceAndVideoCapture &testbed, robot_pose &ps
       world_grid[start_grid_x][start_grid_y].bot_presence = make_pair(1, robot_tag_id);
       last_grid_x = start_grid_x;
       last_grid_y = start_grid_y;
+      start_cell_x = start_grid_x;
+      start_cell_y = start_grid_y;
       target_grid_cell = make_pair(start_grid_x, start_grid_y);
       addGridCellToPath(start_grid_x,start_grid_y,testbed);//add the current robot position as target point on first call, on subsequent calls the robot position would already be on the stack from the previous call assuming the function is called only when the robot has reached the next point
       
@@ -2141,6 +2151,7 @@ void PathPlannerGrid::BoB(AprilInterfaceAndVideoCapture &testbed, robot_pose &ps
     int ngr, ngc;
 
     while(!sk.empty()){
+      coverage_completed = 0;
       pair<int,int> t = sk.top();
       //following two points though needed activally in BSA-CM, here they are just to add the (updated) backtrack points.
       int nx = t.first-world_grid[t.first][t.second].parent.first+1;//add one to avoid negative index
@@ -2306,6 +2317,7 @@ void PathPlannerGrid::BoB(AprilInterfaceAndVideoCapture &testbed, robot_pose &ps
 
   if(!bt_found)
   {
+    coverage_completed = 1;
     cout<<"no bt point left for robot!"<<robot_tag_id<<endl;
     return;
   }  
@@ -2328,6 +2340,15 @@ void PathPlannerGrid::MDFS(AprilInterfaceAndVideoCapture &testbed, robot_pose &p
         }    
       if(!checkReachStatus(t, ps, reach_distance)){//ensure the robot is continuing from the last point, and that no further planning occurs until the robot reaches the required point
           cout<<"the robot has not yet reached the old target"<<t.first<<" "<<t.second<<endl;
+          int c = (pixel_path_points[next_target_index].first)/(cell_size_x);
+          int r = (pixel_path_points[next_target_index].second)/(cell_size_y);
+        /* if(world_grid[r][c].visited==1)
+          {
+            path_points[next_target_index].x = path_points[next_target_index-1].x;
+            path_points[next_target_index].y = path_points[next_target_index-1].y;
+            pixel_path_points[next_target_index].first = pixel_path_points[next_target_index-1].first;
+            pixel_path_points[next_target_index].second = pixel_path_points[next_target_index-1].second;
+          }*/
           return;
         }
       }
@@ -2397,7 +2418,7 @@ void PathPlannerGrid::MDFS(AprilInterfaceAndVideoCapture &testbed, robot_pose &p
           addBacktrackPointToStackAndPath(sk,incumbent_cells,ic_no,ngr,ngc,t,testbed);
           return;
         }
-        /*else//not the root, not part of psuedo code given, but part of theory, it sometimes causes it to be stuck in a loop
+        else//not the root, not part of psuedo code given, but part of theory, it sometimes causes it to be stuck in a loop
         {
           for(int i = 0; i < 4; i++)
           {
@@ -2409,7 +2430,7 @@ void PathPlannerGrid::MDFS(AprilInterfaceAndVideoCapture &testbed, robot_pose &p
               return;
             }
           }
-        }*/
+        }
       }
       else
       {
@@ -2417,12 +2438,13 @@ void PathPlannerGrid::MDFS(AprilInterfaceAndVideoCapture &testbed, robot_pose &p
         {
           ngr = t.first + aj[nx][ny][i].first;
           ngc = t.second + aj[nx][ny][i].second;
-          if(isEmpty(ngr, ngc) && world_grid[ngr][ngc].visited!=1)
+          if(isEmpty(ngr, ngc) && world_grid[ngr][ngc].visited!=1 && world_grid[ngr][ngc].r_id!=robot_tag_id)
           {
             addBacktrackPointToStackAndPath(sk,incumbent_cells,ic_no,ngr,ngc,t,testbed);
             return;
           }
         }
+        coverage_completed = 1;
       }
     }//if !coverage_completed && !sk.empty()
 }//first_call
@@ -2567,7 +2589,7 @@ void PathPlannerGrid::setPathColor(){
 
 void PathPlannerGrid::drawPath(Mat &image){
   setPathColor();
-  int i;
+  int i;  
   for(i = 0;i<total_points-1;i++){
     line(image,Point(pixel_path_points[i].first,pixel_path_points[i].second),Point(pixel_path_points[i+1].first,pixel_path_points[i+1].second),path_color,2); 
   }
@@ -2586,12 +2608,13 @@ void PathPlannerGrid::drawPath(Mat &image){
       rectangle(image,Point(ax-4, ay-4),Point(ax+4,ay+4),path_color,-1);
     }
   }
-  
-  int ax, ay;
-  ax = world_grid[start_cell_x][start_cell_y].tot_x/world_grid[start_cell_x][start_cell_y].tot;
-  ay = world_grid[start_cell_x][start_cell_y].tot_y/world_grid[start_cell_x][start_cell_y].tot;
-  rectangle(image,Point(ax-2, ay-2),Point(ax+2,ay+2),path_color,-1);
-
+  if(start_cell_x >=0 && start_cell_x >=0)
+  {
+    int ax, ay;
+    ax = world_grid[start_cell_x][start_cell_y].tot_x/world_grid[start_cell_x][start_cell_y].tot;
+    ay = world_grid[start_cell_x][start_cell_y].tot_y/world_grid[start_cell_x][start_cell_y].tot;
+    rectangle(image,Point(ax-2, ay-2),Point(ax+2,ay+2),path_color,-1);
+  }
   /*for(int i = 0; i < rcells; i++)
   {
     for(int j = 0; j < ccells; j++)
@@ -2663,9 +2686,6 @@ void PathPlannerGrid::drawRobot(Mat &image){
     }  
       int nx = (current_x - last_x);
       int ny = (current_y - last_y);
-      cout<<"current: "<<current_x<<" "<<current_y<<endl;
-      cout<<"last: "<<last_x<<" "<<last_y<<endl;
-      cout<<"nx, ny: "<<nx<<" "<<ny<<endl;
       if(nx==0 && ny==1)
       {
         line(image,Point(cx, cy),Point(cx-4,cy+4),path_color,2); 
@@ -2690,7 +2710,18 @@ void PathPlannerGrid::drawRobot(Mat &image){
       {
         rectangle(image,Point(cx-4, cy-4),Point(cx+4,cy+4),path_color,-1); 
       }    
-    }   
+    }
+
+  int ax, ay;
+  if(start_cell_x >=0 && start_cell_x >=0)
+  {
+    ax = world_grid[start_cell_x][start_cell_y].tot_x/world_grid[start_cell_x][start_cell_y].tot;
+    ay = world_grid[start_cell_x][start_cell_y].tot_y/world_grid[start_cell_x][start_cell_y].tot;  
+    string s = to_string(robot_tag_id);
+    putText(image, s, Point(ax,ay), FONT_HERSHEY_DUPLEX, 0.5, Scalar(255,255,255), 1);
+  }
+  
+   
 }
 
 //for the class PathPlannerUser
@@ -2751,10 +2782,19 @@ void PathPlannerGrid::DeadlockReplan(AprilInterfaceAndVideoCapture &testbed, vec
         break;
       }
     } 
-
-  if(status != 2)
+  cout<<"paht point size: "<<path_points.size()<<endl;
+  cout<<"next_target_index: "<<next_target_index<<endl;
+  cout<<"total_points: "<<total_points<<endl;
+  cout<<"robot_tag_id: "<<robot_tag_id<<endl;
+  cout<<"start_cell_x, y"<<start_cell_x<<" "<<start_cell_y<<endl;
+  cout<<"converage_completed: "<<coverage_completed<<endl;
+  cout<<"path_points.size(): "<<path_points.size()<<endl;
+  cout<<"index_travelled: "<<index_travelled<<endl;
+  cout<<"next_target_index: "<<next_target_index<<endl;
+  cout<<"empty_neighbor_found: "<<empty_neighbor_found<<endl;
+  if(status != 2 && !coverage_completed)
   {
-
+    cout<<"*********\ncomp\n**********\n";
     total_points+=2;
     if(total_points > path_points.size())
     {
@@ -2786,7 +2826,9 @@ void PathPlannerGrid::DeadlockReplan(AprilInterfaceAndVideoCapture &testbed, vec
 
   else
   {
+    cout<<"*********\nelse\n**********\n";
     status = 1;
+    //coverage_completed = 0;
     vector<pair<int,int> > incumbent_cells(rcells*ccells);
     int ic_no=0;
     pair <int, int> t = make_pair(start_grid_x, start_grid_y);
@@ -2796,11 +2838,22 @@ void PathPlannerGrid::DeadlockReplan(AprilInterfaceAndVideoCapture &testbed, vec
     }
     else
     {
-      int r1 = pixel_path_points[total_points-2].first/cell_size_x;
-      int c1 = pixel_path_points[total_points-2].second/cell_size_y;
+      int r1 = pixel_path_points[next_target_index-2].first/cell_size_x;
+      int c1 = pixel_path_points[next_target_index-2].second/cell_size_y;
       addBacktrackPointToStackAndPath(sk,incumbent_cells,ic_no,r1,c1,t,testbed); 
     }
   }
+  cout<<"After replan!\n**********\n";
+  cout<<"paht point size: "<<path_points.size()<<endl;
+  cout<<"next_target_index: "<<next_target_index<<endl;
+  cout<<"total_points: "<<total_points<<endl;
+  cout<<"robot_tag_id: "<<robot_tag_id<<endl;
+  cout<<"start_cell_x, y"<<start_cell_x<<" "<<start_cell_y<<endl;
+  cout<<"converage_completed: "<<coverage_completed<<endl;
+  cout<<"path_points.size(): "<<path_points.size()<<endl;
+  cout<<"index_travelled: "<<index_travelled<<endl;
+  cout<<"next_target_index: "<<next_target_index<<endl;
+  cout<<"empty_neighbor_found: "<<empty_neighbor_found<<endl;
 }
 
 void PathPlannerGrid::defineVoronoiPartition(AprilInterfaceAndVideoCapture &testbed, vector<PathPlannerGrid> &bots){

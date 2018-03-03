@@ -38,6 +38,7 @@ int check_deadlock(vector<bot_config> &bots, int index)
   while(!clear_flag)
   {
     cout<<"index: "<<index<<endl;
+    cout<<"present cells: "<<bots[index].plan.start_grid_x<<" "<<bots[index].plan.start_grid_y<<endl;
     int r = bots[index].plan.target_grid_cell.first;
     int c = bots[index].plan.target_grid_cell.second;
     cout<<"r,c :"<<r<<" "<<c<<endl;
@@ -49,7 +50,7 @@ int check_deadlock(vector<bot_config> &bots, int index)
       {
         break;
       }
-      else if(bots[target_cell_bot_id].plan.status == 2)// to check if the said target bot has covered all its point and is in no position to move
+      else if(bots[target_cell_bot_id].plan.status == 2 || bots[target_cell_bot_id].plan.coverage_completed==1)// to check if the said target bot has covered all its point and is in no position to move
       {
         break;
       }
@@ -74,11 +75,24 @@ int check_deadlock(vector<bot_config> &bots, int index)
 
 bool check_collision_possibility(AprilInterfaceAndVideoCapture &testbed, vector<PathPlannerGrid> &planners, vector<bot_config> &bots, pair<int,int> &wheel_velocities, int i)
 {
+	cout<<"Checking collision possibility\n";
   if(bots[i].plan.next_target_index != bots[i].plan.path_points.size()) //for collision avoidance
   {
     int c = (bots[i].plan.pixel_path_points[bots[i].plan.next_target_index].first)/(bots[i].plan.cell_size_x);
     int r = (bots[i].plan.pixel_path_points[bots[i].plan.next_target_index].second)/(bots[i].plan.cell_size_y);
     bots[i].plan.target_grid_cell = make_pair(r, c);
+    /*for(int j = 0; j < bots.size(); j++)
+    {
+    	if(j==i)continue;
+    	if(bots[j].plan.target_grid_cell.first == bots[i].plan.target_grid_cell.first && bots[j].plan.target_grid_cell.second == bots[i].plan.target_grid_cell.second)
+    	{    		    		
+    		cout<<"curretn bot: "<<i<<endl;
+    		cout<<"target_grid_cell: "<<bots[i].plan.target_grid_cell.first<<" "<<bots[i].plan.target_grid_cell.second<<endl;
+    		cout<<"same target cell bots: "<<j<<endl;
+    		cout<<"target_grid_cell: "<<bots[j].plan.target_grid_cell.first<<" "<<bots[j].plan.target_grid_cell.second<<endl;
+    		//return 1;
+    	}
+    }*/
     if(bots[i].plan.world_grid[r][c].bot_presence.first == 1 && bots[i].plan.world_grid[r][c].bot_presence.second != bots[i].plan.robot_tag_id)
     {
       int deadlocked_bot = check_deadlock(bots, i);
@@ -92,8 +106,11 @@ bool check_collision_possibility(AprilInterfaceAndVideoCapture &testbed, vector<
       }
       return 1;
     }
+    /*bots[i].plan.world_grid[r][c].bot_presence.first = 1;
+    bots[i].plan.world_grid[r][c].bot_presence.second = bots[i].plan.robot_tag_id;*/ 
     return 0;
   }
+
 }
 
 
@@ -198,7 +215,10 @@ int main(int argc, char* argv[]) {
         if((bots[i].plan.next_target_index) < bots[i].plan.path_points.size())
         {
         	if(!check_collision_possibility(testbed, planners, bots, wheel_velocities, i)) bots[i].plan.index_travelled++;        	
-        }        
+        }
+        /*else{
+			bots[i].plan.target_grid_cell = make_pair(bots[i].plan.start_grid_x,bots[i].plan.start_grid_y);
+		}   */     
    	}
     
     
@@ -222,7 +242,7 @@ int main(int argc, char* argv[]) {
       cout << "  " << 10./(t-last_t) << " fps" << endl;
       last_t = t;
     }
-    if (cv::waitKey(50) == 27){
+    if (cv::waitKey(0) == 27){
         break;//until escape is pressed
     }
   }
