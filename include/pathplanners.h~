@@ -64,7 +64,12 @@ class PathPlannerGrid{
     //these are only required in simulation;
     int index_travelled;
 
-    PathPlannerGrid(int csx,int csy,int th,std::vector<std::vector<nd> > &wg):cell_size_x(csx),cell_size_y(csy),threshold_value(th),total_points(0),start_grid_x(-1),start_grid_y(-1),goal_grid_x(-1),goal_grid_y(-1),robot_id(-1),goal_id(-1),origin_id(-1),robot_tag_id(-1),world_grid(wg), last_grid_x(-1), last_grid_y(-1), next_target_index(0), deadlock_check_counter(0), total_voronoi_cells(0), current_behaviour(0), preferred_x(0), preferred_y(0), boundary_lost(0), voronoi_wall(2), unvisited_discovered_boundary(0), index_travelled(0){
+    //required_for_MDFS and also to mark ending of Algorithms
+    bool coverage_completed;
+    int start_cell_x;
+    int start_cell_y;
+
+    PathPlannerGrid(int csx,int csy,int th,std::vector<std::vector<nd> > &wg):cell_size_x(csx),cell_size_y(csy),threshold_value(th),total_points(0),start_grid_x(-1),start_grid_y(-1),goal_grid_x(-1),goal_grid_y(-1),robot_id(-1),goal_id(-1),origin_id(-1),robot_tag_id(-1),world_grid(wg), last_grid_x(-1), last_grid_y(-1), next_target_index(0), deadlock_check_counter(0), total_voronoi_cells(0), current_behaviour(0), preferred_x(0), preferred_y(0), boundary_lost(0), voronoi_wall(2), unvisited_discovered_boundary(0), index_travelled(0), coverage_completed(0), start_cell_x(-1), start_cell_y(-1){
       initializeLocalPreferenceMatrix();
       initializeBactrackSearchMatrix();
       path_color = cv::Scalar(rng.uniform(0,255),rng.uniform(0,255),rng.uniform(0,255));
@@ -72,7 +77,7 @@ class PathPlannerGrid{
       status = 0;
       target_grid_cell = make_pair(-1, -1);		
     }
-    PathPlannerGrid(std::vector<std::vector<nd> > &wg):total_points(0),start_grid_x(-1),start_grid_y(-1),goal_grid_x(-1),goal_grid_y(-1),robot_id(-1),goal_id(-1),origin_id(-1),robot_tag_id(-1),world_grid(wg),last_grid_x(-1), last_grid_y(-1), next_target_index(0), deadlock_check_counter(0), total_voronoi_cells(0), current_behaviour(0), preferred_x(0), preferred_y(0), boundary_lost(0), voronoi_wall(2), unvisited_discovered_boundary(0), index_travelled(0){
+    PathPlannerGrid(std::vector<std::vector<nd> > &wg):total_points(0),start_grid_x(-1),start_grid_y(-1),goal_grid_x(-1),goal_grid_y(-1),robot_id(-1),goal_id(-1),origin_id(-1),robot_tag_id(-1),world_grid(wg),last_grid_x(-1), last_grid_y(-1), next_target_index(0), deadlock_check_counter(0), total_voronoi_cells(0), current_behaviour(0), preferred_x(0), preferred_y(0), boundary_lost(0), voronoi_wall(2), unvisited_discovered_boundary(0), index_travelled(0), coverage_completed(0), start_cell_x(-1), start_cell_y(-1){
       initializeLocalPreferenceMatrix();
       initializeBactrackSearchMatrix();
       path_color = cv::Scalar(rng.uniform(0,255),rng.uniform(0,255),rng.uniform(0,255));
@@ -164,7 +169,11 @@ class PathPlannerGrid{
     void repartition(vector<PathPlannerGrid> &bots);
     void drawRobot(cv::Mat &image);
  
-    bool checkReachStatus(pair <int, int> t, robot_pose &ps, double reach_distance);    
+    bool checkReachStatus(pair <int, int> t, robot_pose &ps, double reach_distance);
+
+    void BoB(AprilInterfaceAndVideoCapture &testbed, robot_pose &ps, double reach_distance, vector<PathPlannerGrid> &bots); 
+
+    void MDFS(AprilInterfaceAndVideoCapture &testbed, robot_pose &ps, double reach_distance, vector<PathPlannerGrid> &bots);     
     
 };
 

@@ -2313,6 +2313,120 @@ void PathPlannerGrid::BoB(AprilInterfaceAndVideoCapture &testbed, robot_pose &ps
   addBacktrackPointToStackAndPath(sk,incumbent_cells,ic_no,bots[min_bot].bt_destinations[min_bt_index].next_p.first,bots[min_bot].bt_destinations[min_bt_index].next_p.second,bots[min_bot].bt_destinations[min_bt_index].parent,testbed);
 }//function
 
+void PathPlannerGrid::MDFS(AprilInterfaceAndVideoCapture &testbed, robot_pose &ps, double reach_distance, vector<PathPlannerGrid> &bots){
+  if(setRobotCellCoordinates(testbed.detections)<0)//set the start_grid_y, start_grid_x
+    return;
+  if(!first_call){
+    if(!sk.empty()){
+        pair<int,int> t = sk.top();
+        world_grid[start_grid_x][start_grid_y].bot_presence = make_pair(1, robot_tag_id); //assigning bot presence bit to current cell, //this would come to use in collision avoidance algorithm
+        if(last_grid_x != start_grid_x || last_grid_y != start_grid_y)
+        {
+          world_grid[last_grid_x][last_grid_y].bot_presence = make_pair(0, -1);
+          last_grid_x = start_grid_x;
+          last_grid_y = start_grid_y;
+        }    
+      if(!checkReachStatus(t, ps, reach_distance)){//ensure the robot is continuing from the last point, and that no further planning occurs until the robot reaches the required point
+          cout<<"the robot has not yet reached the old target"<<t.first<<" "<<t.second<<endl;
+          return;
+        }
+      }
+      if(coverage_completed) 
+        {
+          cout<<"coverage complete\n";
+          return;
+        }
+  }//!first_call
+
+     //next two are dummy variables, 
+    vector<pair<int,int> > incumbent_cells(rcells*ccells);//make sure rcells and ccells are defined
+    int ic_no = 0;
+
+  if(first_call){
+      first_call = 0;
+      total_points = 0;
+      sk.push(pair<int,int>(start_grid_x,start_grid_y));
+      world_grid[start_grid_x][start_grid_y].parent = setParentUsingOrientation(ps);      
+      world_grid[start_grid_x][start_grid_y].steps = 1;//visited
+      world_grid[start_grid_x][start_grid_y].r_id = robot_tag_id;
+      world_grid[start_grid_x][start_grid_y].tree_id = robot_tag_id;
+      world_grid[start_grid_x][start_grid_y].bot_presence = make_pair(1, robot_tag_id);
+      last_grid_x = start_grid_x;
+      last_grid_y = start_grid_y;
+      start_cell_x = start_grid_x;
+      start_cell_y = start_grid_y;
+      target_grid_cell = make_pair(start_grid_x, start_grid_y);
+      addGridCellToPath(start_grid_x,start_grid_y,testbed);//add the current robot position as target point on first call, on subsequent calls the robot position would already be on the stack from the previous call assuming the function is called only when the robot has reached the next point
+      return;//added the first spiral point
+    }//first_call
+ 
+    int ngr, ngc;
+    if(!coverage_completed && !sk.empty())
+    {
+      pair<int,int> t = sk.top();
+      //following two points though needed activally in BSA-CM, here they are just to add the (updated) backtrack points.
+      int nx = t.first-world_grid[t.first][t.second].parent.first+1;//add one to avoid negative index
+      int ny = t.second-world_grid[t.first][t.second].parent.second+1;
+
+      coverage_completed = 1;
+      for(int i = 0; i < 4; i++)
+      {
+        ngr = t.first + aj[nx][ny][i].first;
+        ngc = t.second + aj[nx][ny][i].second;
+        if(isEmpty(ngr, ngc) && world_grid[ngr][ngc].visited!=1)
+        {
+          coverage_completed = 0;
+        }       
+        if(!isBlocked(ngr,ngc))
+        {
+          addBacktrackPointToStackAndPath(sk,incumbent_cells,ic_no,ngr,ngc,t,testbed);
+          world_grid[ngr][ngc].tree_parent = t;
+          world_grid[ngr][ngc].tree_id = robot_tag_id;
+          return;
+        }
+      }
+      if(coverage_completed) return;
+
+      if(world_grid[t.first][t.second].tree_id == robot_tag_id)
+      {
+        world_grid[t.first][t.second].visited = 1;
+        if(world_grid[t.first][t.second].tree_parent.first != -1 && world_grid[t.first][t.second].tree_parent.first !=-1)
+        {
+          ngr = world_grid[t.first][t.second].tree_parent.first;
+          ngc = world_grid[t.first][t.second].tree_parent.second;        
+          addBacktrackPointToStackAndPath(sk,incumbent_cells,ic_no,ngr,ngc,t,testbed);
+          return;
+        }
+        /*else//not the root, not part of psuedo code given, but part of theory, it sometimes causes it to be stuck in a loop
+        {
+          for(int i = 0; i < 4; i++)
+          {
+            ngr = t.first + aj[nx][ny][i].first;
+            ngc = t.second + aj[nx][ny][i].second;
+            if(isEmpty(ngr, ngc) && world_grid[ngr][ngc].tree_id!=robot_tag_id && world_grid[ngr][ngc].visited!=1)
+            {
+              addBacktrackPointToStackAndPath(sk,incumbent_cells,ic_no,ngr,ngc,t,testbed);
+              return;
+            }
+          }
+        }*/
+      }
+      else
+      {
+        for(int i = 0; i < 4; i++)
+        {
+          ngr = t.first + aj[nx][ny][i].first;
+          ngc = t.second + aj[nx][ny][i].second;
+          if(isEmpty(ngr, ngc) && world_grid[ngr][ngc].visited!=1)
+          {
+            addBacktrackPointToStackAndPath(sk,incumbent_cells,ic_no,ngr,ngc,t,testbed);
+            return;
+          }
+        }
+      }
+    }//if !coverage_completed && !sk.empty()
+}//first_call
+
 
 
 void PathPlannerGrid::BSACoverage(AprilInterfaceAndVideoCapture &testbed,robot_pose &ps){
@@ -2439,7 +2553,7 @@ void PathPlannerGrid::setPathColor(){
     case 1: path_color = cv::Scalar(0, 0, 255); break;
     case 2: path_color = cv::Scalar(0, 255, 255); break;
     case 3: path_color = cv::Scalar(255, 0, 255); break;
-    case 4: path_color = cv::Scalar(255, 255, 0); break;
+    case 4: path_color = cv::Scalar(255, 32, 123); break;
     case 5: path_color = cv::Scalar(21, 155, 85); break;
     case 6: path_color = cv::Scalar(232, 124, 64); break;
     case 7: path_color = cv::Scalar(84, 25, 237); break;
@@ -2472,6 +2586,25 @@ void PathPlannerGrid::drawPath(Mat &image){
       rectangle(image,Point(ax-4, ay-4),Point(ax+4,ay+4),path_color,-1);
     }
   }
+  
+  int ax, ay;
+  ax = world_grid[start_cell_x][start_cell_y].tot_x/world_grid[start_cell_x][start_cell_y].tot;
+  ay = world_grid[start_cell_x][start_cell_y].tot_y/world_grid[start_cell_x][start_cell_y].tot;
+  rectangle(image,Point(ax-2, ay-2),Point(ax+2,ay+2),path_color,-1);
+
+  /*for(int i = 0; i < rcells; i++)
+  {
+    for(int j = 0; j < ccells; j++)
+    {
+      if(world_grid[i][j].visited==1)
+      {
+        ax = world_grid[i][j].tot_x/world_grid[i][j].tot;
+        ay = world_grid[i][j].tot_y/world_grid[i][j].tot;
+        line(image,Point(ax-4, ay-4),Point(ax + 4, ay +4),Scalar (0, 0, 0),1);
+        line(image,Point(ax+4, ay-4),Point(ax - 4, ay +4),Scalar (0, 0, 0),1); 
+      }
+    }
+  }*/
   /*
   for(i = 0; i < uev_destinations.size(); i++)
   {

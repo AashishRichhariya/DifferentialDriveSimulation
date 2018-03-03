@@ -21,7 +21,7 @@ struct nd{
   int blacks, whites;
   int tot_x, tot_y;//to calculate the middle pixel for the cell
   std::pair<int,int> parent;//parent in bfs, not used in global preference dfs(but parent is still set nevertheless), parent in local dfs, parent in BSA
-  int steps;//steps in bfs(also used to indicate visited nodes), states in global preference dfs used in finding coverage, 0 = uncovered, 1 = 0th child, 2 = 1st child, 3 = 2nd child, 4 = 3rd child, 5 = all covered, visited in local dfs
+  int steps;//steps in bfs(also used to indicate visited nodes), states in global preference dfs used in finding coverage, 0 = uncovered, 1 = 0th child, 2 = 1st child, 3 = 2nd child, 4 = 3rd child, 5 = all covered, visited in local dfs, //same explored in MDFS
   int wall_reference;//-1 no wall, 0 front wall, 1 right wall, 2 left wall, 3 back wall, used in BSA
   int r_id;//robot id that covered the given cell, starts from 0 and up
 	
@@ -33,13 +33,18 @@ struct nd{
    int voronoi_id; //id of the bot to which the cell is alloted to in case of vornoi partition
    bool isBoundaryCell;
    int patch_num;//unvisited portion of one's path
+//following variables are required for MDFS
+   int visited;//required for MDFS
+   std::pair<int, int> tree_parent; //required for MDFS
+   int tree_id;//required for MDFS
+
    nd():tot(0),blacks(0),whites(0),tot_x(0),tot_y(0){
-    r_id = wall_reference = parent.first = parent.second = bot_presence.second = voronoi_id = patch_num = -1;
-    steps = bot_presence.first = isBoundaryCell = 0;
+    r_id = wall_reference = parent.first = parent.second = bot_presence.second = voronoi_id = patch_num= tree_id = -1;
+    steps = bot_presence.first = isBoundaryCell = visited =  0;
   }
   void emptyCell(){
-    tot = blacks = whites = tot_x = tot_y = steps = bot_presence.first = isBoundaryCell = 0;
-    parent.first = parent.second = wall_reference = r_id = bot_presence.second = voronoi_id = patch_num = -1;
+    tot = blacks = whites = tot_x = tot_y = steps = bot_presence.first = visited = isBoundaryCell = 0;
+    parent.first = parent.second = wall_reference = r_id = bot_presence.second = voronoi_id = patch_num = tree_id = -1;
   }
 };
 struct bt{

@@ -128,12 +128,13 @@ int main(int argc, char* argv[]) {
   "3: Boustrophedon Motion With Updated Bactrack Search\n"
   "4: Boustrophedon Motion With BSA_CM like Backtracking\n" 
   "5: BoB\n"
+  "6: MDFS\n"
   "\nEnter here: ";
   cin>>algo_select;
 
   while (true){    
 
-    image = imread("../Maps/Basic.png");
+    image = imread("../Maps/Cluttered.png");
   	cvtColor(image, image_gray, CV_BGR2GRAY);
 
     if(first_iter){
@@ -186,7 +187,8 @@ int main(int argc, char* argv[]) {
       case 2: bots[i].plan.BSACoverageWithUpdatedBactrackSelection(testbed,bots[i].pose, 2.5,planners); break;
       case 3: bots[i].plan.BoustrophedonMotionWithUpdatedBactrackSelection(testbed,bots[i].pose, 2.5,planners); break;
       case 4: bots[i].plan.BoustrophedonMotionWithBSA_CMlikeBacktracking(testbed,bots[i].pose, 2.5,planners); break;    
-      case 5: bots[i].plan.BoB(testbed,bots[i].pose, 2.5,planners); break;      
+      case 5: bots[i].plan.BoB(testbed,bots[i].pose, 2.5,planners); break; 
+      case 6: bots[i].plan.MDFS(testbed,bots[i].pose, 2.5,planners); break;      
       default: bots[i].plan.BSACoverageIncremental(testbed,bots[i].pose, 2.5,planners);   
       }   
     }
