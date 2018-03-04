@@ -2786,7 +2786,7 @@ void PathPlannerGrid::DeadlockReplan(AprilInterfaceAndVideoCapture &testbed, vec
   cout<<"next_target_index: "<<next_target_index<<endl;
   cout<<"total_points: "<<total_points<<endl;
   cout<<"robot_tag_id: "<<robot_tag_id<<endl;
-  cout<<"start_cell_x, y"<<start_cell_x<<" "<<start_cell_y<<endl;
+  cout<<"start_cell_x, y: "<<start_cell_x<<" "<<start_cell_y<<endl;
   cout<<"converage_completed: "<<coverage_completed<<endl;
   cout<<"path_points.size(): "<<path_points.size()<<endl;
   cout<<"index_travelled: "<<index_travelled<<endl;
@@ -2828,7 +2828,6 @@ void PathPlannerGrid::DeadlockReplan(AprilInterfaceAndVideoCapture &testbed, vec
   {
     cout<<"*********\nelse\n**********\n";
     status = 1;
-    //coverage_completed = 0;
     vector<pair<int,int> > incumbent_cells(rcells*ccells);
     int ic_no=0;
     pair <int, int> t = make_pair(start_grid_x, start_grid_y);
@@ -2848,7 +2847,7 @@ void PathPlannerGrid::DeadlockReplan(AprilInterfaceAndVideoCapture &testbed, vec
   cout<<"next_target_index: "<<next_target_index<<endl;
   cout<<"total_points: "<<total_points<<endl;
   cout<<"robot_tag_id: "<<robot_tag_id<<endl;
-  cout<<"start_cell_x, y"<<start_cell_x<<" "<<start_cell_y<<endl;
+  cout<<"start_cell_x, y: "<<start_cell_x<<" "<<start_cell_y<<endl;
   cout<<"converage_completed: "<<coverage_completed<<endl;
   cout<<"path_points.size(): "<<path_points.size()<<endl;
   cout<<"index_travelled: "<<index_travelled<<endl;

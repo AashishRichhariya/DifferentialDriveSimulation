@@ -147,11 +147,12 @@ int main(int argc, char* argv[]) {
   "5: BoB\n"
   "6: MDFS\n"
   "\nEnter here: ";
+  int bots_in_same_cell = 0;
   cin>>algo_select;
 
   while (true){    
 
-    image = imread("../Maps/Cluttered.png");
+    image = imread("../Maps/Office.png");
   	cvtColor(image, image_gray, CV_BGR2GRAY);
 
     if(first_iter){
@@ -183,27 +184,20 @@ int main(int argc, char* argv[]) {
       }
     }
 
-    if(first_iter)
-    {
-     	first_iter = 0;
-    	//if(algo_select==5)
-    	//{
-    		//bots[0].plan.defineVoronoiPartition(testbed, planners);
-    	//}    	
-    }
+    
  
     for(int i = 0;i<bots.size();i++){      
       planners[i] = bots[i].plan;
     }
     
-    pair <int, int> wheel_velocities;//dummy variable in case of simulation
+    
     for(int i = 0;i<bots.size();i++){
-    	bots[i].plan.next_target_index = bots[i].plan.index_travelled+1;        
+    	/*bots[i].plan.next_target_index = bots[i].plan.index_travelled+1;        
         if((bots[i].plan.next_target_index) < bots[i].plan.path_points.size())
         {
         	if(!check_collision_possibility(testbed, planners, bots, wheel_velocities, i)) bots[i].plan.index_travelled++;        	
         }
-      cout<<"planning for id "<<i<<endl;
+      cout<<"planning for id "<<i<<endl;*/
       switch(algo_select)
       {
       case 1: bots[i].plan.BSACoverageIncremental(testbed,bots[i].pose, 2.5,planners); break;
@@ -215,7 +209,7 @@ int main(int argc, char* argv[]) {
       default: bots[i].plan.BSACoverageIncremental(testbed,bots[i].pose, 2.5,planners);   
       }   
     }
-    /*pair <int, int> wheel_velocities;//dummy variable in case of simulation
+    pair <int, int> wheel_velocities;//dummy variable in case of simulation
     for(int i = 0;i<bots.size();i++){            
         bots[i].plan.next_target_index = bots[i].plan.index_travelled+1;        
         if((bots[i].plan.next_target_index) < bots[i].plan.path_points.size())
@@ -226,7 +220,7 @@ int main(int argc, char* argv[]) {
 		//	bots[i].plan.target_grid_cell = make_pair(bots[i].plan.start_grid_x,bots[i].plan.start_grid_y);
 		//}        
    	}
-    */
+    
     
     bots[0].plan.drawGrid(image, planners);
    	for(int i = 0;i<bots.size();i++){      	
@@ -248,8 +242,8 @@ int main(int argc, char* argv[]) {
       cout << "  " << 10./(t-last_t) << " fps" << endl;
       last_t = t;
     }
-    int fla = 0;
-    for(int i = 0; i < bots.size()-1; i++)
+    
+    /*for(int i = 0; i < bots.size()-1; i++)
     {
     	for(int j=i+1; j < bots.size(); j++)
     	{
@@ -257,20 +251,39 @@ int main(int argc, char* argv[]) {
     		{
     			if(bots[i].plan.path_points[bots[i].plan.index_travelled].y == bots[j].plan.path_points[bots[j].plan.index_travelled].y)
     			{
-    				cout<<"Q!$*%*&%^@*($!!@#^)@!&%$\n";
     				cout<<"bots in same cell!\n";
     				cout<<"i, j: "<<i<<" "<<j<<endl;
-    				fla = 1;
+    				cout<<"r,c: "<<bots[i].plan.path_points[bots[i].plan.index_travelled].x<<" "<<bots[i].plan.path_points[bots[i].plan.index_travelled].y<<endl;
+    				bots_in_same_cell = 1;
     			}
     		}
     	}
     }
-    if(fla==1)break;
-    if (cv::waitKey(1) == 27){
+    if(bots_in_same_cell) cv::waitKey(0);*/
 
+    bool completed = 1;
+    for(int i = 0; i < bots.size(); i++)
+    {
+    	if(bots[i].plan.path_points.size()!=(bots[i].plan.next_target_index))
+    	{
+    		completed = 0;
+    		break;
+    	}
+    }
+    if(!first_iter && completed == 1)
+    {
+    	cout<<"Coverage Completed!\n";
+    	break;
+    }
+
+    if(first_iter)
+    {
+     	first_iter = 0;
+    }
+    if (cv::waitKey(1) == 27){
         break;//until escape is pressed
     }
-  }
+  }//while
   imshow(windowName,image);
 
   cout<<"***********************\n***************\n";

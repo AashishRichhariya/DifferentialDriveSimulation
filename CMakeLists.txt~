@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.1)
 set (CMAKE_CXX_STANDARD 11)
-set (CMAKE_BUILD_TYPE Release)
+set (CMAKE_BUILD_TYPE Debug)
 project( DifferentialDriveSimulation )
 add_subdirectory(./sandbox)
 set (CMAKE_LIBRARY_OUTPUT_DIRECTORY ${DifferentialDriveSimulation_SOURCE_DIR}/build/lib)
