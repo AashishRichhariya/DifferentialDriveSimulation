@@ -75,7 +75,7 @@ int check_deadlock(vector<bot_config> &bots, int index)
 
 bool check_collision_possibility(AprilInterfaceAndVideoCapture &testbed, vector<PathPlannerGrid> &planners, vector<bot_config> &bots, pair<int,int> &wheel_velocities, int i)
 {
-	cout<<"Checking collision possibility\n";
+  cout<<"Checking collision possibility\n";
   if(bots[i].plan.next_target_index != bots[i].plan.path_points.size()) //for collision avoidance
   {
     int c = (bots[i].plan.pixel_path_points[bots[i].plan.next_target_index].first)/(bots[i].plan.cell_size_x);
@@ -146,12 +146,19 @@ int main(int argc, char* argv[]) {
   "4: Boustrophedon Motion With BSA_CM like Backtracking\n" 
   "5: BoB\n"
   "6: MDFS\n"
+  "7: ANTS\n"
   "\nEnter here: ";
   int bots_in_same_cell = 0;
   cin>>algo_select;
 
-  while (true){    
+  int repeatedCoverage = 0;
+  int total_path_length = 0;
+  int total_iterations = 0;
+  double total_time = 0;
 
+  double start_t = tic();
+  while (true){    
+  	total_iterations++;
     image = imread("../Maps/Office.png");
   	cvtColor(image, image_gray, CV_BGR2GRAY);
 
@@ -162,7 +169,7 @@ int main(int argc, char* argv[]) {
         bots[i].plan.rcells = bots[0].plan.rcells;
         bots[i].plan.ccells = bots[0].plan.ccells;
       }
-      srand(time(0));
+     srand(time(0));
       for(int i = 0; i < bots.size(); i++)
       {
       	int r = rand()%bots[0].plan.rcells;
@@ -205,7 +212,8 @@ int main(int argc, char* argv[]) {
       case 3: bots[i].plan.BoustrophedonMotionWithUpdatedBactrackSelection(testbed,bots[i].pose, 2.5,planners); break;
       case 4: bots[i].plan.BoustrophedonMotionWithBSA_CMlikeBacktracking(testbed,bots[i].pose, 2.5,planners); break;    
       case 5: bots[i].plan.BoB(testbed,bots[i].pose, 2.5,planners); break; 
-      case 6: bots[i].plan.MDFS(testbed,bots[i].pose, 2.5,planners); break;      
+      case 6: bots[i].plan.MDFS(testbed,bots[i].pose, 2.5,planners); break; 
+      case 7: bots[i].plan.ANTS(testbed,bots[i].pose, 2.5,planners); break;     
       default: bots[i].plan.BSACoverageIncremental(testbed,bots[i].pose, 2.5,planners);   
       }   
     }
@@ -234,16 +242,8 @@ int main(int argc, char* argv[]) {
       //add a only shortest path invocation drawing function in pathplanners
       //correct next point by index to consider reach radius to determine the next point
     imshow(windowName,image);
-    
-    // print out the frame rate at which image frames are being processed
-    frame++;
-    if (frame % 10 == 0) {
-      double t = tic();
-      cout << "  " << 10./(t-last_t) << " fps" << endl;
-      last_t = t;
-    }
-    
-    /*for(int i = 0; i < bots.size()-1; i++)
+    //cv::waitKey(0);
+   /*for(int i = 0; i < bots.size()-1; i++)
     {
     	for(int j=i+1; j < bots.size(); j++)
     	{
@@ -284,6 +284,7 @@ int main(int argc, char* argv[]) {
         break;//until escape is pressed
     }
   }//while
+  double end_t = tic();
   imshow(windowName,image);
 
   cout<<"***********************\n***************\n";
@@ -295,6 +296,31 @@ int main(int argc, char* argv[]) {
     		cout<<"next_target_index: "<<bots[i].plan.next_target_index<<endl;
     		cout<<"current points: "<<bots[i].plan.path_points[bots[i].plan.index_travelled].x<<" "<<bots[i].plan.path_points[bots[i].plan.index_travelled].y<<endl;
     	}
+
+	vector <vector<int>> coverage(bots[0].plan.rcells);
+	for(int i = 0; i < bots[0].plan.rcells; i++)
+	{
+		coverage[i].resize(bots[0].plan.ccells);
+	}
+	for(int i = 0; i < bots.size(); i++)
+	{
+		total_path_length+= bots[i].plan.path_points.size();
+		for(int j = 0; j < bots[i].plan.path_points.size(); j++)
+		{
+			coverage[bots[i].plan.path_points[j].x][bots[i].plan.path_points[j].y]++;
+			if(coverage[bots[i].plan.path_points[j].x][bots[i].plan.path_points[j].y] > 1)
+			{
+				repeatedCoverage++;
+			}
+		}
+	}
+	total_time = end_t -start_t;
+	cout<<"***************************\n";
+	cout<<"Results: "<<endl;
+	cout<<"total_iterations: "<<total_iterations<<endl;
+	cout<<"total_path_length: "<<total_path_length<<endl;
+	cout<<"repeatedCoverage: "<<repeatedCoverage<<endl;
+	cout<<"Total Computation Time: "<<total_time<<endl;
     cv::waitKey(0);
   return 0;
 }

@@ -38,12 +38,14 @@ struct nd{
    std::pair<int, int> tree_parent; //required for MDFS
    int tree_id;//required for MDFS
 
+    //Ants
+    int visit_cost;//Required for ANTS
    nd():tot(0),blacks(0),whites(0),tot_x(0),tot_y(0){
     r_id = wall_reference = parent.first = parent.second = bot_presence.second = voronoi_id = patch_num= tree_id = -1;
-    steps = bot_presence.first = isBoundaryCell = visited =  0;
+    steps = bot_presence.first = isBoundaryCell = visited = visit_cost =  0;
   }
   void emptyCell(){
-    tot = blacks = whites = tot_x = tot_y = steps = bot_presence.first = visited = isBoundaryCell = 0;
+    tot = blacks = whites = tot_x = tot_y = steps = bot_presence.first = visited = isBoundaryCell = visit_cost = 0;
     parent.first = parent.second = wall_reference = r_id = bot_presence.second = voronoi_id = patch_num = tree_id = tree_parent.first = tree_parent.second = -1;
   }
 };
