@@ -149,12 +149,14 @@ int main(int argc, char* argv[]) {
   int bots_in_same_cell = 0;
   cin>>algo_select;
 
+
   int repeatedCoverage = 0;
   int total_path_length = 0;
   int total_iterations = 0;
   double total_completion_time = 0;
-  double total_computation_time;
-  double time_to_move = 0;
+  //double total_computation_time = 0;
+  double time_to_compute = 0;
+  double total_movement_time = 0;
 
   double start_t = tic();
   while (true){    
@@ -163,7 +165,6 @@ int main(int argc, char* argv[]) {
   	cvtColor(image, image_gray, CV_BGR2GRAY);
 
     if(first_iter){
-      //first_iter = 0; 
       bots[0].plan.overlayGrid(testbed.detections,image_gray);//overlay grid completely reintialize the grid, we have to call it once at the beginning only when all robots first seen simultaneously(the surrounding is assumed to be static) not every iteration
       for(int i = 1;i<bots.size();i++){
         bots[i].plan.rcells = bots[0].plan.rcells;
@@ -197,7 +198,7 @@ int main(int argc, char* argv[]) {
       planners[i] = bots[i].plan;
     }
     
-    
+    double compute_start = tic();
     for(int i = 0;i<bots.size();i++){
       switch(algo_select)
       {
@@ -210,24 +211,18 @@ int main(int argc, char* argv[]) {
       case 7: bots[i].plan.ANTS(testbed,bots[i].pose, 2.5,planners); break;     
       default: bots[i].plan.BSACoverageIncremental(testbed,bots[i].pose, 2.5,planners);   
       }   
-    }        
+    }
+    double compute_end  = tic();
+    time_to_compute += (compute_end-compute_start);
 
-    double move_start = tic();
+    double start_movement = tic();
     pair <int, int> wheel_velocities;//dummy variable in case of simulation
     for(int i = 0;i<bots.size();i++){    
         bots[i].plan.next_target_index = bots[i].plan.index_travelled+1;
-        cout<<"**********\n";
-        cout<<"first_iter?: "<<first_iter<<endl;
-        cout<<"index_travelled: "<<bots[i].plan.index_travelled<<endl;
-        cout<<"next_target_index: "<<bots[i].plan.next_target_index<<endl;
-        cout<<"path_size: "<<bots[i].plan.path_points.size()<<endl;
-        cout<<"**********\n";
         if((bots[i].plan.next_target_index) < bots[i].plan.path_points.size())
         {
-        	cout<<"Yeah!\n";
         	if(bots[i].plan.movement_made==1 && !first_iter)
 	        {
-	        	cout<<"oh\n";
 	        	bots[i].plan.last_orient = bots[i].plan.current_orient;
 	        	int nx = bots[i].plan.path_points[bots[i].plan.next_target_index].x - bots[i].plan.path_points[bots[i].plan.next_target_index-1].x;
 	        	int ny = bots[i].plan.path_points[bots[i].plan.next_target_index].y - bots[i].plan.path_points[bots[i].plan.next_target_index-1].y;
@@ -266,34 +261,20 @@ int main(int argc, char* argv[]) {
 	        		{
 	        			bots[i].plan.iter_wait = 6 + rand()%3;
 	        		}
-
 	        	}
-	        	cout<<"nx, ny: "<<nx<<ny<<endl;
 	        } 
-	        cout<<"i: "<<i<<endl;
-	     	cout<<"current_orient: "<<bots[i].plan.current_orient<<endl;
-	     	cout<<"last_orient: "<<bots[i].plan.last_orient<<endl;
-	        cout<<"iter_wait: "<<bots[i].plan.iter_wait<<endl;
-	        cout<<"movement_made: "<<bots[i].plan.movement_made<<endl;
-	        cout<<"first_iter?: "<<first_iter<<endl;
-	        cout<<"next_target_index: "<<bots[i].plan.next_target_index<<endl;
-	        cout<<"path_size(): "<<bots[i].plan.path_points.size()<<endl;
-	        //cv::waitKey(0);
-
         	if(!check_collision_possibility(testbed, planners, bots, wheel_velocities, i) && bots[i].plan.iter_wait <=0) {
         		bots[i].plan.index_travelled++;
         		bots[i].plan.movement_made = 1;
-        		cout<<"moved!\n";
         	}
         	else{
         	bots[i].plan.iter_wait--; 
         	bots[i].plan.movement_made = 0;
-        	cout<<"not moved, iter_wait reduced!\n";  
-        	cout<<"bots[i].plan.iter_wait: "<<bots[i].plan.iter_wait<<endl;
         	}    	
         }     
    	}
-    
+   	double end_movement = tic();
+   	total_movement_time += (end_movement-start_movement);    
     
     bots[0].plan.drawGrid(image, planners);
    	for(int i = 0;i<bots.size();i++){      	
@@ -325,11 +306,6 @@ int main(int argc, char* argv[]) {
     	}
     }
     if(bots_in_same_cell) cv::waitKey(0);*/
-    double move_end  =tic();
-    time_to_move += (move_end-move_start);
-
-
-
     bool completed = 1;
     for(int i = 0; i < bots.size(); i++)
     {
@@ -383,16 +359,19 @@ int main(int argc, char* argv[]) {
 			}
 		}
 	}
-	total_completion_time = end_t -start_t;
-	total_computation_time = total_completion_time - time_to_move;
+	//total_completion_time = time_to_compute + total_movement_time;
+	double complete_process = end_t - start_t;
+	total_movement_time = complete_process - time_to_compute;
+	
 
 	cout<<"***************************\n";
 	cout<<"Results: "<<endl;
 	cout<<"total_iterations: "<<total_iterations<<endl;
 	cout<<"total_path_length: "<<total_path_length<<endl;
 	cout<<"repeatedCoverage: "<<repeatedCoverage<<endl;
-	cout<<"Total Computation Time: "<<total_computation_time<<endl;
-	cout<<"Total Completion Time (Compute + move): "<<total_completion_time<<endl;
+	cout<<"Total Computation Time: "<<time_to_compute<<endl;
+	cout<<"total_movement_time: "<<total_movement_time<<endl;	
+	cout<<"Complete Process (everything): "<<complete_process<<endl;
     cv::waitKey(0);
   return 0;
 }
