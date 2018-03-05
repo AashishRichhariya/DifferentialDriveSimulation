@@ -69,9 +69,16 @@ class PathPlannerGrid{
     int start_cell_x;
     int start_cell_y;
 
+    //required to simulate delays in movement
+    int current_orient;
+    int last_orient;
+    int iter_wait;//0 initially
+    bool movement_made;//1 initially
+       
+  
    
 
-    PathPlannerGrid(int csx,int csy,int th,std::vector<std::vector<nd> > &wg):cell_size_x(csx),cell_size_y(csy),threshold_value(th),total_points(0),start_grid_x(-1),start_grid_y(-1),goal_grid_x(-1),goal_grid_y(-1),robot_id(-1),goal_id(-1),origin_id(-1),robot_tag_id(-1),world_grid(wg), last_grid_x(-1), last_grid_y(-1), next_target_index(0), deadlock_check_counter(0), total_voronoi_cells(0), current_behaviour(0), preferred_x(0), preferred_y(0), boundary_lost(0), voronoi_wall(2), unvisited_discovered_boundary(0), index_travelled(0), coverage_completed(0), start_cell_x(-1), start_cell_y(-1){
+    PathPlannerGrid(int csx,int csy,int th,std::vector<std::vector<nd> > &wg):cell_size_x(csx),cell_size_y(csy),threshold_value(th),total_points(0),start_grid_x(-1),start_grid_y(-1),goal_grid_x(-1),goal_grid_y(-1),robot_id(-1),goal_id(-1),origin_id(-1),robot_tag_id(-1),world_grid(wg), last_grid_x(-1), last_grid_y(-1), next_target_index(0), deadlock_check_counter(0), total_voronoi_cells(0), current_behaviour(0), preferred_x(0), preferred_y(0), boundary_lost(0), voronoi_wall(2), unvisited_discovered_boundary(0), index_travelled(0), coverage_completed(0), start_cell_x(-1), start_cell_y(-1), current_orient(-1), last_orient(-1), iter_wait(0), movement_made(1){
       initializeLocalPreferenceMatrix();
       initializeBactrackSearchMatrix();
       path_color = cv::Scalar(rng.uniform(0,255),rng.uniform(0,255),rng.uniform(0,255));
@@ -79,7 +86,7 @@ class PathPlannerGrid{
       status = 0;
       target_grid_cell = make_pair(-1, -1);		
     }
-    PathPlannerGrid(std::vector<std::vector<nd> > &wg):total_points(0),start_grid_x(-1),start_grid_y(-1),goal_grid_x(-1),goal_grid_y(-1),robot_id(-1),goal_id(-1),origin_id(-1),robot_tag_id(-1),world_grid(wg),last_grid_x(-1), last_grid_y(-1), next_target_index(0), deadlock_check_counter(0), total_voronoi_cells(0), current_behaviour(0), preferred_x(0), preferred_y(0), boundary_lost(0), voronoi_wall(2), unvisited_discovered_boundary(0), index_travelled(0), coverage_completed(0), start_cell_x(-1), start_cell_y(-1){
+    PathPlannerGrid(std::vector<std::vector<nd> > &wg):total_points(0),start_grid_x(-1),start_grid_y(-1),goal_grid_x(-1),goal_grid_y(-1),robot_id(-1),goal_id(-1),origin_id(-1),robot_tag_id(-1),world_grid(wg),last_grid_x(-1), last_grid_y(-1), next_target_index(0), deadlock_check_counter(0), total_voronoi_cells(0), current_behaviour(0), preferred_x(0), preferred_y(0), boundary_lost(0), voronoi_wall(2), unvisited_discovered_boundary(0), index_travelled(0), coverage_completed(0), start_cell_x(-1), start_cell_y(-1), current_orient(-1), last_orient(-1), iter_wait(0), movement_made(1){
       initializeLocalPreferenceMatrix();
       initializeBactrackSearchMatrix();
       path_color = cv::Scalar(rng.uniform(0,255),rng.uniform(0,255),rng.uniform(0,255));

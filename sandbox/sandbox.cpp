@@ -113,8 +113,6 @@ bool check_collision_possibility(AprilInterfaceAndVideoCapture &testbed, vector<
 
 }
 
-
-
 int main(int argc, char* argv[]) {
   AprilInterfaceAndVideoCapture testbed;  
   int frame = 0;
@@ -154,7 +152,9 @@ int main(int argc, char* argv[]) {
   int repeatedCoverage = 0;
   int total_path_length = 0;
   int total_iterations = 0;
-  double total_time = 0;
+  double total_completion_time = 0;
+  double total_computation_time;
+  double time_to_move = 0;
 
   double start_t = tic();
   while (true){    
@@ -185,7 +185,7 @@ int main(int argc, char* argv[]) {
       	bots[i].pose.x = r;
       	bots[i].pose.y = c;
       	bots[i].pose.omega = rand()%4;
-
+      	bots[i].plan.current_orient = bots[i].pose.omega;
       	bots[i].plan.robot_id = i;
       	bots[i].plan.robot_tag_id = i;
       }
@@ -199,12 +199,6 @@ int main(int argc, char* argv[]) {
     
     
     for(int i = 0;i<bots.size();i++){
-    	/*bots[i].plan.next_target_index = bots[i].plan.index_travelled+1;        
-        if((bots[i].plan.next_target_index) < bots[i].plan.path_points.size())
-        {
-        	if(!check_collision_possibility(testbed, planners, bots, wheel_velocities, i)) bots[i].plan.index_travelled++;        	
-        }
-      cout<<"planning for id "<<i<<endl;*/
       switch(algo_select)
       {
       case 1: bots[i].plan.BSACoverageIncremental(testbed,bots[i].pose, 2.5,planners); break;
@@ -216,17 +210,88 @@ int main(int argc, char* argv[]) {
       case 7: bots[i].plan.ANTS(testbed,bots[i].pose, 2.5,planners); break;     
       default: bots[i].plan.BSACoverageIncremental(testbed,bots[i].pose, 2.5,planners);   
       }   
-    }
+    }        
+
+    double move_start = tic();
     pair <int, int> wheel_velocities;//dummy variable in case of simulation
-    for(int i = 0;i<bots.size();i++){            
-        bots[i].plan.next_target_index = bots[i].plan.index_travelled+1;        
+    for(int i = 0;i<bots.size();i++){    
+        bots[i].plan.next_target_index = bots[i].plan.index_travelled+1;
+        cout<<"**********\n";
+        cout<<"first_iter?: "<<first_iter<<endl;
+        cout<<"index_travelled: "<<bots[i].plan.index_travelled<<endl;
+        cout<<"next_target_index: "<<bots[i].plan.next_target_index<<endl;
+        cout<<"path_size: "<<bots[i].plan.path_points.size()<<endl;
+        cout<<"**********\n";
         if((bots[i].plan.next_target_index) < bots[i].plan.path_points.size())
         {
-        	if(!check_collision_possibility(testbed, planners, bots, wheel_velocities, i)) bots[i].plan.index_travelled++;        	
-        }
-        //else{
-		//	bots[i].plan.target_grid_cell = make_pair(bots[i].plan.start_grid_x,bots[i].plan.start_grid_y);
-		//}        
+        	cout<<"Yeah!\n";
+        	if(bots[i].plan.movement_made==1 && !first_iter)
+	        {
+	        	cout<<"oh\n";
+	        	bots[i].plan.last_orient = bots[i].plan.current_orient;
+	        	int nx = bots[i].plan.path_points[bots[i].plan.next_target_index].x - bots[i].plan.path_points[bots[i].plan.next_target_index-1].x;
+	        	int ny = bots[i].plan.path_points[bots[i].plan.next_target_index].y - bots[i].plan.path_points[bots[i].plan.next_target_index-1].y;
+	        	if(nx==0 && ny==0) bots[i].plan.iter_wait = 0;
+	        	else if(nx == -1 && ny == 0 )//up
+	        	{
+	        		bots[i].plan.current_orient = 0;	        	
+	        	}
+	        	else if(nx == 0 && ny == 1)//right
+	        	{
+	        		bots[i].plan.current_orient = 1;
+	        	}
+	        	else if(nx == 1 && ny == 0)//down
+	        	{
+	        		bots[i].plan.current_orient = 2;
+	        	}
+	        	else if(nx == 0 && ny == -1)//left
+	        	{
+	        		bots[i].plan.current_orient = 3;
+	        	}
+	        	if(!(nx==0 && ny==0))
+	        	{
+	        		if(abs(bots[i].plan.current_orient - bots[i].plan.last_orient)==0)
+	        		{
+	        			bots[i].plan.iter_wait = 0 + rand()%3;
+	        		}
+	        		else if(abs(bots[i].plan.current_orient - bots[i].plan.last_orient)%3==0)
+	        		{
+	        			bots[i].plan.iter_wait = 3 + rand()%3;
+	        		}
+	        		else if(abs(bots[i].plan.current_orient - bots[i].plan.last_orient)==1)
+	        		{
+	        			bots[i].plan.iter_wait = 3 + rand()%3;
+	        		}
+	        		else if(abs(bots[i].plan.current_orient - bots[i].plan.last_orient)==2)
+	        		{
+	        			bots[i].plan.iter_wait = 6 + rand()%3;
+	        		}
+
+	        	}
+	        	cout<<"nx, ny: "<<nx<<ny<<endl;
+	        } 
+	        cout<<"i: "<<i<<endl;
+	     	cout<<"current_orient: "<<bots[i].plan.current_orient<<endl;
+	     	cout<<"last_orient: "<<bots[i].plan.last_orient<<endl;
+	        cout<<"iter_wait: "<<bots[i].plan.iter_wait<<endl;
+	        cout<<"movement_made: "<<bots[i].plan.movement_made<<endl;
+	        cout<<"first_iter?: "<<first_iter<<endl;
+	        cout<<"next_target_index: "<<bots[i].plan.next_target_index<<endl;
+	        cout<<"path_size(): "<<bots[i].plan.path_points.size()<<endl;
+	        //cv::waitKey(0);
+
+        	if(!check_collision_possibility(testbed, planners, bots, wheel_velocities, i) && bots[i].plan.iter_wait <=0) {
+        		bots[i].plan.index_travelled++;
+        		bots[i].plan.movement_made = 1;
+        		cout<<"moved!\n";
+        	}
+        	else{
+        	bots[i].plan.iter_wait--; 
+        	bots[i].plan.movement_made = 0;
+        	cout<<"not moved, iter_wait reduced!\n";  
+        	cout<<"bots[i].plan.iter_wait: "<<bots[i].plan.iter_wait<<endl;
+        	}    	
+        }     
    	}
     
     
@@ -260,6 +325,10 @@ int main(int argc, char* argv[]) {
     	}
     }
     if(bots_in_same_cell) cv::waitKey(0);*/
+    double move_end  =tic();
+    time_to_move += (move_end-move_start);
+
+
 
     bool completed = 1;
     for(int i = 0; i < bots.size(); i++)
@@ -314,13 +383,16 @@ int main(int argc, char* argv[]) {
 			}
 		}
 	}
-	total_time = end_t -start_t;
+	total_completion_time = end_t -start_t;
+	total_computation_time = total_completion_time - time_to_move;
+
 	cout<<"***************************\n";
 	cout<<"Results: "<<endl;
 	cout<<"total_iterations: "<<total_iterations<<endl;
 	cout<<"total_path_length: "<<total_path_length<<endl;
 	cout<<"repeatedCoverage: "<<repeatedCoverage<<endl;
-	cout<<"Total Computation Time: "<<total_time<<endl;
+	cout<<"Total Computation Time: "<<total_computation_time<<endl;
+	cout<<"Total Completion Time (Compute + move): "<<total_completion_time<<endl;
     cv::waitKey(0);
   return 0;
 }
