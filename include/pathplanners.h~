@@ -74,6 +74,10 @@ class PathPlannerGrid{
     int last_orient;
     int iter_wait;//0 initially
     bool movement_made;//1 initially
+
+   //required in S-MSTC
+    stack<pair<int,int> > second_sk;
+
        
   
    
@@ -184,7 +188,13 @@ class PathPlannerGrid{
 
     void MDFS(AprilInterfaceAndVideoCapture &testbed, robot_pose &ps, double reach_distance, vector<PathPlannerGrid> &bots); 
 
-    void ANTS(AprilInterfaceAndVideoCapture &testbed, robot_pose &ps, double reach_distance, vector<PathPlannerGrid> &bots);     
+    void ANTS(AprilInterfaceAndVideoCapture &testbed, robot_pose &ps, double reach_distance, vector<PathPlannerGrid> &bots);  
+
+    void S_MSTC(AprilInterfaceAndVideoCapture &testbed, robot_pose &ps, double reach_distance, vector<PathPlannerGrid> &bots); 
+	
+    void BrickAndMortar(AprilInterfaceAndVideoCapture &testbed, robot_pose &ps, double reach_distance, vector<PathPlannerGrid> &bots);   
+
+    void checkConnectivity(pair <int, int> start, pair <int, int> end);//required to checking blockage in Brick and Mortar;   
     
 };
 

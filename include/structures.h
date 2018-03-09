@@ -40,12 +40,15 @@ struct nd{
 
     //Ants
     int visit_cost;//Required for ANTS
+
+    bool checked;//used when we just need to check a cell, for example while checking connectivity in Brick and Mortar
+
    nd():tot(0),blacks(0),whites(0),tot_x(0),tot_y(0){
     r_id = wall_reference = parent.first = parent.second = bot_presence.second = voronoi_id = patch_num= tree_id = -1;
-    steps = bot_presence.first = isBoundaryCell = visited = visit_cost =  0;
+    steps = bot_presence.first = isBoundaryCell = visited = visit_cost = checked =  0;
   }
   void emptyCell(){
-    tot = blacks = whites = tot_x = tot_y = steps = bot_presence.first = visited = isBoundaryCell = visit_cost = 0;
+    tot = blacks = whites = tot_x = tot_y = steps = bot_presence.first = visited = isBoundaryCell = visit_cost = checked = 0;
     parent.first = parent.second = wall_reference = r_id = bot_presence.second = voronoi_id = patch_num = tree_id = tree_parent.first = tree_parent.second = -1;
   }
 };
