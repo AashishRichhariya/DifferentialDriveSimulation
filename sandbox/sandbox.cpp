@@ -56,6 +56,11 @@ int check_deadlock(vector<bot_config> &bots, int index)
       {
         break;
       }
+      else if(bots[target_cell_bot_id].plan.wait_to_plan == 1)
+      {
+      	clear_flag = 1;
+      	break;
+      }
       index = target_cell_bot_id;
       continue;
     }
@@ -728,6 +733,7 @@ int main(int argc, char* argv[]) {
     
     double compute_start = tic();
     for(int i = 0;i<bots.size();i++){
+      bots[i].plan.wait_to_plan = 0;
       switch(algo_select)
       {
       case 1: bots[i].plan.BSACoverageIncremental(testbed,bots[i].pose, 2.5,planners); break;
@@ -751,7 +757,7 @@ int main(int argc, char* argv[]) {
         bots[i].plan.next_target_index = bots[i].plan.index_travelled+1;
         if((bots[i].plan.next_target_index) < bots[i].plan.path_points.size())
         {
-        	/*if(bots[i].plan.movement_made==1 && !first_iter)
+        	if(bots[i].plan.movement_made==1 && !first_iter)
 	        {
 	        	bots[i].plan.last_orient = bots[i].plan.current_orient;
 	        	int nx = bots[i].plan.path_points[bots[i].plan.next_target_index].x - bots[i].plan.path_points[bots[i].plan.next_target_index-1].x;
@@ -792,15 +798,16 @@ int main(int argc, char* argv[]) {
 	        			bots[i].plan.iter_wait = 6 + rand()%3;
 	        		}
 	        	}
-	        } */
-        	if(!check_collision_possibility(testbed, planners, bots, wheel_velocities, i) /*&& bots[i].plan.iter_wait <=0*/) {
+	        } 
+        	if(!check_collision_possibility(testbed, planners, bots, wheel_velocities, i) /*&& bots[i].plan.iter_wait <=0!*/) {
         		bots[i].plan.index_travelled++;
-        		//bots[i].plan.movement_made = 1;
+        		bots[i].plan.updateMovementinSimulation(testbed);
+        		bots[i].plan.movement_made = 1;
         	}
-        	/*else{
+        	else{
         	bots[i].plan.iter_wait--; 
         	bots[i].plan.movement_made = 0;
-        	}  */  	
+        	}   	
         }     
    	}
    	double end_movement = tic();
@@ -834,7 +841,7 @@ int main(int argc, char* argv[]) {
     			}
     		}
     	}
-    }
+
     if(bots_in_same_cell) cv::waitKey(0);*/
     bool completed = 1;
     for(int i = 0; i < bots.size(); i++)
@@ -855,7 +862,7 @@ int main(int argc, char* argv[]) {
     {
      	first_iter = 0;
     }
-    if (cv::waitKey(10) == 27){
+    if (cv::waitKey(1) == 27){
         break;//until escape is pressed
     }
   }//while

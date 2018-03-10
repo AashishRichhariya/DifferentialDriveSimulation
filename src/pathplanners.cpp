@@ -450,6 +450,20 @@ int PathPlannerGrid::backtrackSimulateBid(pair<int,int> target,AprilInterfaceAnd
   //}
   //return 10000000;//the robot can't return to given target
 }
+
+void PathPlannerGrid::updateMovementinSimulation(AprilInterfaceAndVideoCapture &testbed)
+{
+   if(setRobotCellCoordinates(testbed.detections)<0)//set the start_grid_y, start_grid_x
+    return;
+    world_grid[start_grid_x][start_grid_y].bot_presence = make_pair(1, robot_tag_id); //assigning bot presence bit to current cell, //this would come to use in collision avoidance algorithm
+    if(last_grid_x != start_grid_x || last_grid_y != start_grid_y)
+      {
+        world_grid[last_grid_x][last_grid_y].bot_presence = make_pair(0, -1);
+        last_grid_x = start_grid_x;
+        last_grid_y = start_grid_y;
+      }
+    wait_to_plan = 1;    
+}
 //each function call adds only the next spiral point in the path vector, which may occur after a return phase
 void PathPlannerGrid::BSACoverageIncremental(AprilInterfaceAndVideoCapture &testbed, robot_pose &ps, double reach_distance, vector<PathPlannerGrid> &bots){
   if(setRobotCellCoordinates(testbed.detections)<0)//set the start_grid_y, start_grid_x
@@ -2618,7 +2632,9 @@ bool PathPlannerGrid::checkConnectivity(pair <int, int> start, pair <int, int> e
         break;
       for(int i = 0;i<4;i++){
         ngr = t.first+aj[i].first, ngc = t.second+aj[i].second;
-        if(!isEmpty(ngr, ngc) || world_grid[ngr][ngc].visited ==1 || world_grid[ngr][ngc].checked==1)
+        if(!isEmpty(ngr, ngc) ||  world_grid[ngr][ngc].visited ==1 || world_grid[ngr][ngc].checked==1)
+          continue;
+        if(isEmpty(ngr, ngc) && world_grid[ngr][ngc].steps == 0 && world_grid[ngr][ngc].observed==0)
           continue;
         world_grid[ngr][ngc].checked = 1;
         q.push(make_pair(ngr,ngc));
@@ -2685,18 +2701,65 @@ void PathPlannerGrid::BrickAndMortar(AprilInterfaceAndVideoCapture &testbed, rob
       int nx = t.first-world_grid[t.first][t.second].parent.first+1;//add one to avoid negative index
       int ny = t.second-world_grid[t.first][t.second].parent.second+1;
       
-      bool not_blocking = 1;
+      bool not_blocking = 1;//Marking Step starts
       world_grid[t.first][t.second].visited = 1;
-      for(int i = 0; i < 3; i++)//Marking Step starts
+      vector <pair<int, int>> ng(8);
+      ng[0] = make_pair(-1, 0); //up
+      ng[1] = make_pair(-1, 1); //up-right
+      ng[2] = make_pair(0, 1);//right
+      ng[3] = make_pair(1, 1); //bottom right
+      ng[4] = make_pair(1, 0);//bottom
+      ng[5] = make_pair(1, -1);//bottom left
+      ng[6] = make_pair(0, -1);//left
+      ng[7] = make_pair(-1, -1);//up left
+      for(int i = 0; i < 8; i++)
+      {
+        int ngr2 = t.first + ng[i].first;
+        int ngc2 = t.second + ng[i].second;
+        if(isEmpty(ngr2, ngc2))
+        {
+          world_grid[ngr2][ngc2].observed = 1; 
+        }        
+      }
+      /*int not_visited_ng = 0;
+      for(int i = 0; i < 4; i++)
+      {
+        int ngr2 = t.first + ng[i].first;
+        int ngc2 = t.second + ng[i].second;
+        if(isEmpty(ngr2, ngc2) && world_grid[ngr2][ngc2].visited!=1)
+        {
+          not_visited_ng++;
+        }   
+      }*/
+      for(int i = 0; i < 3; i++)
       {
         int ngr2 = t.first + aj[nx][ny][i].first;
         int ngc2 = t.second + aj[nx][ny][i].second;
+        /*bool consider_visited_first = 1;
+        if(not_visited_ng > 1 && isEmpty(ngr2, ngc2) && world_grid[ngr2][ngc2].bot_presence.first==1 && world_grid[ngr2][ngc2].visited==1)
+        {
+          consider_visited_first = 0;
+        }
+        if(consider_visited_first!=1)
+        {
+          world_grid[ngr2][ngc2].visited=0;
+        }*/
+        
         if(isEmpty(ngr2, ngc2) && world_grid[ngr2][ngc2].visited!=1)
         {          
           for(int j = i+1; j < 4; j++)
           {
             int ngr3 = t.first + aj[nx][ny][j].first;
-            int ngc3 = t.second + aj[nx][ny][j].second;            
+            int ngc3 = t.second + aj[nx][ny][j].second;
+            /*bool consider_visited_second = 1;
+            if(not_visited_ng > 1 &&  isEmpty(ngr3, ngc3) && world_grid[ngr3][ngc3].bot_presence.first==1 && world_grid[ngr3][ngc3].visited==1)
+            {
+              consider_visited_second = 0;
+            }
+            if(consider_visited_second!=1)
+            {
+              world_grid[ngr3][ngc3].visited=0;
+            }*/          
             if(isEmpty(ngr3, ngc3) && world_grid[ngr3][ngc3].visited!=1)
             {
               cout<<"i, j: "<<i<<" "<<j<<endl;
@@ -2705,12 +2768,24 @@ void PathPlannerGrid::BrickAndMortar(AprilInterfaceAndVideoCapture &testbed, rob
               cout<<"end: "<<ngr3<<" "<<ngc3<<endl;
               not_blocking = checkConnectivity(make_pair(ngr2, ngc2) , make_pair(ngr3, ngc3));
               cout<<"connectivity: "<<checkConnectivity(make_pair(ngr2, ngc2) , make_pair(ngr3, ngc3))<<endl;
+              /*if(consider_visited_second!=1)
+              {
+                world_grid[ngr3][ngc3].visited=1;
+              }*/
               if(not_blocking == 0)
               {
                 break;
               }
-            }//if          
+            }//if
+            /*if(consider_visited_second!=1)
+            {
+              world_grid[ngr3][ngc3].visited=1;
+            }  */        
           }//for j 
+         /*if(consider_visited_first!=1)
+          {
+            world_grid[ngr2][ngc2].visited=1;
+          }*/
           if(not_blocking == 0)
           {
             break;
