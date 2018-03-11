@@ -2721,7 +2721,7 @@ void PathPlannerGrid::BrickAndMortar(AprilInterfaceAndVideoCapture &testbed, rob
           world_grid[ngr2][ngc2].observed = 1; 
         }        
       }
-      /*int not_visited_ng = 0;
+     /* int not_visited_ng = 0;
       for(int i = 0; i < 4; i++)
       {
         int ngr2 = t.first + ng[i].first;
@@ -2735,7 +2735,7 @@ void PathPlannerGrid::BrickAndMortar(AprilInterfaceAndVideoCapture &testbed, rob
       {
         int ngr2 = t.first + aj[nx][ny][i].first;
         int ngc2 = t.second + aj[nx][ny][i].second;
-        /*bool consider_visited_first = 1;
+       /* bool consider_visited_first = 1;
         if(not_visited_ng > 1 && isEmpty(ngr2, ngc2) && world_grid[ngr2][ngc2].bot_presence.first==1 && world_grid[ngr2][ngc2].visited==1)
         {
           consider_visited_first = 0;
@@ -2759,7 +2759,7 @@ void PathPlannerGrid::BrickAndMortar(AprilInterfaceAndVideoCapture &testbed, rob
             if(consider_visited_second!=1)
             {
               world_grid[ngr3][ngc3].visited=0;
-            }*/          
+            }     */     
             if(isEmpty(ngr3, ngc3) && world_grid[ngr3][ngc3].visited!=1)
             {
               cout<<"i, j: "<<i<<" "<<j<<endl;
@@ -2780,7 +2780,7 @@ void PathPlannerGrid::BrickAndMortar(AprilInterfaceAndVideoCapture &testbed, rob
             /*if(consider_visited_second!=1)
             {
               world_grid[ngr3][ngc3].visited=1;
-            }  */        
+            }   */       
           }//for j 
          /*if(consider_visited_first!=1)
           {
@@ -3023,7 +3023,7 @@ void PathPlannerGrid::drawPath(Mat &image){
     ay = world_grid[start_cell_x][start_cell_y].tot_y/world_grid[start_cell_x][start_cell_y].tot;
     rectangle(image,Point(ax-2, ay-2),Point(ax+2,ay+2),path_color,-1);
   }
-  /*for(int i = 0; i < rcells; i++)
+  for(int i = 0; i < rcells; i++)
   {
     for(int j = 0; j < ccells; j++)
     {
@@ -3036,7 +3036,7 @@ void PathPlannerGrid::drawPath(Mat &image){
         line(image,Point(ax+4, ay-4),Point(ax - 4, ay +4),Scalar (0, 0, 0),1); 
       }
     }
-  }*/
+  }
   /*
   for(i = 0; i < uev_destinations.size(); i++)
   {
