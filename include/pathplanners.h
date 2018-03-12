@@ -89,7 +89,7 @@ class PathPlannerGrid{
 
    double path_completion_time; //used to compute completion time;
        
-  
+     
    
 
     PathPlannerGrid(int csx,int csy,int th,std::vector<std::vector<nd> > &wg):cell_size_x(csx),cell_size_y(csy),threshold_value(th),total_points(0),start_grid_x(-1),start_grid_y(-1),goal_grid_x(-1),goal_grid_y(-1),robot_id(-1),goal_id(-1),origin_id(-1),robot_tag_id(-1),world_grid(wg), last_grid_x(-1), last_grid_y(-1), next_target_index(0), deadlock_check_counter(0), total_voronoi_cells(0), current_behaviour(0), preferred_x(0), preferred_y(0), boundary_lost(0), voronoi_wall(2), unvisited_discovered_boundary(0), index_travelled(0), coverage_completed(0), start_cell_x(-1), start_cell_y(-1), current_orient(-1), last_orient(-1), iter_wait(0), movement_made(1), wait_to_plan(0), last_move_time(0), time_spent_in_computation(0), way_to_move(0), path_completion_time(0), bot_start_movement(0), bot_end_movement(0){

@@ -764,27 +764,31 @@ int main(int argc, char* argv[]) {
 
     vector <pair<double, int>> time_left_to_move(bots.size());
     double time_since_last_movement;
-    double current_time;
+    double current_time = tic();
     
 	if(!first_iter)
 	{
 		for(int i = 0; i < bots.size(); i++)
 		{	
-			bots[i].plan.bot_start_movement=tic();
+			bots[i].plan.bot_start_movement=/*tic()*/current_time;
 			bots[i].plan.next_target_index = bots[i].plan.index_travelled+1;
         	if((bots[i].plan.next_target_index) < bots[i].plan.path_points.size())
         	{
-        		bots[i].plan.time_spent_in_computation += (bots[i].plan.bot_start_movement-end_movement);	
-				current_time = tic();
+        	 	bots[i].plan.time_spent_in_computation += (bots[i].plan.bot_start_movement-end_movement);	
+				//current_time = tic();
 				time_since_last_movement = current_time - bots[i].plan.last_move_time - bots[i].plan.time_spent_in_computation;
 				time_left_to_move[i].first = bots[i].plan.wait_time-time_since_last_movement;
 				time_left_to_move[i].second = bots[i].plan.robot_tag_id;
+				/*cout<<"robot id: "<<bots[i].plan.robot_tag_id<<endl;
+		        cout<<"wait time: "<<bots[i].plan.wait_time<<endl;
+				cout<<"time since last movement: "<<time_since_last_movement<<endl;	 */
 	        }
 	        else
 	        {
 	        	time_left_to_move[i].first = 100000000;
 				time_left_to_move[i].second = bots[i].plan.robot_tag_id;
-	        }	 
+	        }
+	        
 		}
 		
 	}
@@ -927,10 +931,11 @@ int main(int argc, char* argv[]) {
    	// }
    	start_movement = tic();
    	current_time = tic();
+
    	pair <int, int> wheel_velocities;//dummy variable in case of simulation
     for(int i = 0;i<bots.size();i++){    
         bots[time_left_to_move[i].second].plan.next_target_index = bots[time_left_to_move[i].second].plan.index_travelled+1;
-        if((bots[time_left_to_move[i].second].plan.next_target_index) < bots[time_left_to_move[i].second].plan.path_points.size())
+        if((bots[time_left_to_move[i].second].plan.next_target_index) != bots[time_left_to_move[i].second].plan.path_points.size())
         {
         	if(bots[time_left_to_move[i].second].plan.movement_made==1 && !first_iter)
 	        {
@@ -964,7 +969,7 @@ int main(int argc, char* argv[]) {
 	        			double rand_delay = rand()%600;
 	        			rand_delay = 300 - rand_delay;
 	        			bots[time_left_to_move[i].second].plan.path_completion_time += (move_straight_time + rand_delay)/1000;
-	        			bots[time_left_to_move[i].second].plan.wait_time = (move_straight_time + rand_delay)/(10000000);
+	        			bots[time_left_to_move[i].second].plan.wait_time = (move_straight_time + rand_delay)/(100000000);
 	        		}
 	        		else if(abs(bots[time_left_to_move[i].second].plan.current_orient - bots[time_left_to_move[i].second].plan.last_orient)%3==0)//moving 90 degree
 	        		{
@@ -976,7 +981,7 @@ int main(int argc, char* argv[]) {
 	        			rand_delay_turn = 200 - rand_delay_turn;
 	        			double rand_delay = rand_delay_straight + rand_delay_turn;
 	        			bots[time_left_to_move[i].second].plan.path_completion_time += (move_straight_time + turn_quarter_time+ rand_delay)/1000;
-	        			bots[time_left_to_move[i].second].plan.wait_time = (move_straight_time + turn_quarter_time+ rand_delay)/(10000000);
+	        			bots[time_left_to_move[i].second].plan.wait_time = (move_straight_time + turn_quarter_time+ rand_delay)/(100000000);
 	        		}
 	        		else if(abs(bots[time_left_to_move[i].second].plan.current_orient - bots[time_left_to_move[i].second].plan.last_orient)==1)//moving 90 degree
 	        		{
@@ -987,7 +992,7 @@ int main(int argc, char* argv[]) {
 	        			rand_delay_turn = 200 - rand_delay_turn;
 	        			double rand_delay = rand_delay_straight + rand_delay_turn;
 	        			bots[time_left_to_move[i].second].plan.path_completion_time += (move_straight_time + turn_quarter_time+ rand_delay)/1000;
-	        			bots[time_left_to_move[i].second].plan.wait_time = (move_straight_time + turn_quarter_time+ rand_delay)/(10000000);
+	        			bots[time_left_to_move[i].second].plan.wait_time = (move_straight_time + turn_quarter_time+ rand_delay)/(100000000);
 	        			//bots[time_left_to_move[i].second].plan.iter_wait = 3 + rand()%3;
 	        		}
 	        		else if(abs(bots[time_left_to_move[i].second].plan.current_orient - bots[time_left_to_move[i].second].plan.last_orient)==2)//moving 180 degree
@@ -999,7 +1004,7 @@ int main(int argc, char* argv[]) {
 	        			rand_delay_turn = 200 - rand_delay_turn;
 	        			double rand_delay = rand_delay_straight + rand_delay_turn;
 	        			bots[time_left_to_move[i].second].plan.path_completion_time += (move_straight_time + turn_quarter_time + turn_quarter_time+ rand_delay)/1000;
-	        			bots[time_left_to_move[i].second].plan.wait_time = (move_straight_time + turn_quarter_time+ turn_quarter_time + rand_delay)/(10000000);
+	        			bots[time_left_to_move[i].second].plan.wait_time = (move_straight_time + turn_quarter_time+ turn_quarter_time + rand_delay)/(100000000);
 	        			//bots[time_left_to_move[i].second].plan.iter_wait = 6 + rand()%3;
 	        		}
 	        	}
@@ -1010,43 +1015,43 @@ int main(int argc, char* argv[]) {
 	        //current_time = tic();
 	        time_since_last_movement = current_time - bots[time_left_to_move[i].second].plan.last_move_time - bots[time_left_to_move[i].second].plan.time_spent_in_computation;
 	        //commenting following lines make the bots run slow, I don't know why?
-	        cout<<"*******????????????***********\n";
-	        cout<<"robot id: "<<bots[time_left_to_move[i].second].plan.robot_tag_id<<endl;
-	        cout<<"wait time: "<<bots[time_left_to_move[i].second].plan.wait_time<<endl;
+	        //cout<<"*******????????????***********\n";
+	        //cout<<"robot id: "<<bots[time_left_to_move[i].second].plan.robot_tag_id<<endl;
+	        /*cout<<"wait time: "<<bots[time_left_to_move[i].second].plan.wait_time<<endl;
 	        cout<<"current_time: "<<current_time<<endl;
 	        cout<<"last_move time: "<<bots[time_left_to_move[i].second].plan.last_move_time<<endl;
 	        cout<<"time spent in computation: "<<bots[time_left_to_move[i].second].plan.time_spent_in_computation<<endl;
 	        cout<<"time since last movement: "<<time_since_last_movement<<endl;
-	        cout<<"*******????????????***********\n";
-        	if(!check_collision_possibility(testbed, planners, bots, wheel_velocities, i) && time_since_last_movement >= bots[time_left_to_move[i].second].plan.wait_time /*&& bots[time_left_to_move[i].second].plan.iter_wait <=0!*/) {
-        		cout<<"Moving to next: \n";
+	        cout<<"*******????????????***********\n";*/
+        	if(!check_collision_possibility(testbed, planners, bots, wheel_velocities, i) && (time_since_last_movement >= bots[time_left_to_move[i].second].plan.wait_time) /*&& bots[time_left_to_move[i].second].plan.iter_wait <=0!*/) {
+        		//cout<<"Moving to next: \n";
         		move_count++;
-        		cout<<"type of movement: "<<endl;
-        		switch(bots[time_left_to_move[i].second].plan.way_to_move)
+        		//cout<<"type of movement: "<<endl;
+        		/*switch(bots[time_left_to_move[i].second].plan.way_to_move)
         		{
         			case 0: cout<<"straight\n";break;
         			case 1: cout<<"turn 90 degree\n";break;
         			case 2: cout<<"turn 180 degree\n";break;
-        		}
+        		}*/
         		bots[time_left_to_move[i].second].plan.index_travelled++;
         		bots[time_left_to_move[i].second].plan.updateMovementinSimulation(testbed);
        			planners[time_left_to_move[i].second] = bots[time_left_to_move[i].second].plan;
         		bots[time_left_to_move[i].second].plan.movement_made = 1;
         		bots[time_left_to_move[i].second].plan.time_spent_in_computation = 0;
-        		bots[time_left_to_move[i].second].plan.last_move_time = tic();
+        		//bots[time_left_to_move[i].second].plan.last_move_time = tic();
         	}
         	else{
-        	bots[time_left_to_move[i].second].plan.iter_wait--; 
-        	cout<<"Had to wait!\n"<<endl;
-        	wait_count++;
-        	cout<<"type of movement: "<<endl;
-        	switch(bots[time_left_to_move[i].second].plan.way_to_move)
-        		{
-        			case 0: cout<<"straight\n";break;
-        			case 1: cout<<"turn 90 degree\n";break;
-        			case 2: cout<<"turn 180 degree\n";break;
-        		}
-        	bots[time_left_to_move[i].second].plan.movement_made = 0;
+	        	//bots[time_left_to_move[i].second].plan.iter_wait--; 
+	        	//cout<<"Had to wait!\n"<<endl;
+	        	wait_count++;
+	        	/*cout<<"type of movement: "<<endl;
+	        	switch(bots[time_left_to_move[i].second].plan.way_to_move)
+	        		{
+	        			case 0: cout<<"straight\n";break;
+	        			case 1: cout<<"turn 90 degree\n";break;
+	        			case 2: cout<<"turn 180 degree\n";break;
+	        		}*/
+	        	bots[time_left_to_move[i].second].plan.movement_made = 0;
         	}        	
         }    
    	}
@@ -1063,8 +1068,17 @@ int main(int argc, char* argv[]) {
    	
    	
    	end_movement = tic();
+   	for(int i = 0; i < bots.size(); i++)
+	{	    
+	    if(bots[i].plan.movement_made==1)
+		{
+		   bots[i].plan.last_move_time = end_movement;
+		}
+	      		
+	}
+	
    	//cout<<"end_movement: "<<end_movement<<endl;
-   	total_movement_time += (end_movement-start_movement);
+   	//total_movement_time += (end_movement-start_movement);
    	//cout<<"end - start "<<end_movement-start_movement<<endl;
 
    	//cv::waitKey(0);
