@@ -58,6 +58,7 @@ int check_deadlock(vector<bot_config> &bots, int index)
       }
       else if(bots[target_cell_bot_id].plan.wait_to_plan == 1)
       {
+      	cout<<"Wait to plan!\n";
       	clear_flag = 1;
       	break;
       }
@@ -648,7 +649,6 @@ int main(int argc, char* argv[]) {
   	getSimulatioResults(3, 20, 7);
   	return 0;
   }
-
   AprilInterfaceAndVideoCapture testbed;  
   int frame = 0;
   int first_iter = 1;
@@ -937,6 +937,7 @@ int main(int argc, char* argv[]) {
         bots[time_left_to_move[i].second].plan.next_target_index = bots[time_left_to_move[i].second].plan.index_travelled+1;
         if((bots[time_left_to_move[i].second].plan.next_target_index) != bots[time_left_to_move[i].second].plan.path_points.size())
         {
+        	cout<<"id: "<<bots[time_left_to_move[i].second].plan.robot_tag_id<<endl;
         	if(bots[time_left_to_move[i].second].plan.movement_made==1 && !first_iter)
 	        {
 	        	//cout<<"wait time changed!\n";
@@ -1023,7 +1024,7 @@ int main(int argc, char* argv[]) {
 	        cout<<"time spent in computation: "<<bots[time_left_to_move[i].second].plan.time_spent_in_computation<<endl;
 	        cout<<"time since last movement: "<<time_since_last_movement<<endl;
 	        cout<<"*******????????????***********\n";*/
-        	if(!check_collision_possibility(testbed, planners, bots, wheel_velocities, i) && (time_since_last_movement >= bots[time_left_to_move[i].second].plan.wait_time) /*&& bots[time_left_to_move[i].second].plan.iter_wait <=0!*/) {
+        	if((time_since_last_movement >= bots[time_left_to_move[i].second].plan.wait_time) && !check_collision_possibility(testbed, planners, bots, wheel_velocities, time_left_to_move[i].second) /*&& bots[time_left_to_move[i].second].plan.iter_wait <=0!*/) {
         		//cout<<"Moving to next: \n";
         		move_count++;
         		//cout<<"type of movement: "<<endl;
@@ -1096,7 +1097,7 @@ int main(int argc, char* argv[]) {
       //correct next point by index to consider reach radius to determine the next point
     imshow(windowName,image);
     //cv::waitKey(0);
-   /*for(int i = 0; i < bots.size()-1; i++)
+   for(int i = 0; i < bots.size()-1; i++)
     {
     	for(int j=i+1; j < bots.size(); j++)
     	{
@@ -1111,8 +1112,10 @@ int main(int argc, char* argv[]) {
     			}
     		}
     	}
+    }
 
-    if(bots_in_same_cell) cv::waitKey(0);*/
+    if(bots_in_same_cell) cv::waitKey(0);
+    bots_in_same_cell = 0;
     bool completed = 1;
     for(int i = 0; i < bots.size(); i++)
     {

@@ -2762,12 +2762,8 @@ void PathPlannerGrid::BrickAndMortar(AprilInterfaceAndVideoCapture &testbed, rob
             }     */     
             if(isEmpty(ngr3, ngc3) && world_grid[ngr3][ngc3].visited!=1)
             {
-              cout<<"i, j: "<<i<<" "<<j<<endl;
-              cout<<"t: "<<t.first<<" "<<t.second<<endl;
-              cout<<"start: "<<ngr2<<" "<<ngc2<<endl;
-              cout<<"end: "<<ngr3<<" "<<ngc3<<endl;
               not_blocking = checkConnectivity(make_pair(ngr2, ngc2) , make_pair(ngr3, ngc3));
-              cout<<"connectivity: "<<checkConnectivity(make_pair(ngr2, ngc2) , make_pair(ngr3, ngc3))<<endl;
+
               /*if(consider_visited_second!=1)
               {
                 world_grid[ngr3][ngc3].visited=1;
