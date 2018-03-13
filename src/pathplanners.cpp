@@ -459,6 +459,11 @@ void PathPlannerGrid::updateMovementinSimulation(AprilInterfaceAndVideoCapture &
     if(last_grid_x != start_grid_x || last_grid_y != start_grid_y)
       {
         world_grid[last_grid_x][last_grid_y].bot_presence = make_pair(0, -1);
+        if(world_grid[last_grid_x][last_grid_y].mark_visited==1)
+        {
+          world_grid[last_grid_x][last_grid_y].visited = 1;
+          //world_grid[last_grid_x][last_grid_y].mark_visited=0;
+        }
         last_grid_x = start_grid_x;
         last_grid_y = start_grid_y;
       }
@@ -2632,7 +2637,7 @@ bool PathPlannerGrid::checkConnectivity(pair <int, int> start, pair <int, int> e
         break;
       for(int i = 0;i<4;i++){
         ngr = t.first+aj[i].first, ngc = t.second+aj[i].second;
-        if(!isEmpty(ngr, ngc) ||  world_grid[ngr][ngc].visited ==1 || world_grid[ngr][ngc].checked==1)
+        if(!isEmpty(ngr, ngc) ||  world_grid[ngr][ngc].visited ==1 || world_grid[ngr][ngc].checked==1 || world_grid[ngr][ngc].visited ==1)
           continue;
         if(isEmpty(ngr, ngc) && world_grid[ngr][ngc].steps == 0 && world_grid[ngr][ngc].observed==0)
           continue;
@@ -2650,12 +2655,17 @@ void PathPlannerGrid::BrickAndMortar(AprilInterfaceAndVideoCapture &testbed, rob
   if(setRobotCellCoordinates(testbed.detections)<0)//set the start_grid_y, start_grid_x
     return;
   if(!first_call){
-    if(!sk.empty()){
+    if(!sk.empty()){       
         pair<int,int> t = sk.top();
         world_grid[start_grid_x][start_grid_y].bot_presence = make_pair(1, robot_tag_id); //assigning bot presence bit to current cell, //this would come to use in collision avoidance algorithm
         if(last_grid_x != start_grid_x || last_grid_y != start_grid_y)
         {
           world_grid[last_grid_x][last_grid_y].bot_presence = make_pair(0, -1);
+          if(world_grid[last_grid_x][last_grid_y].mark_visited==1)
+          {
+            world_grid[last_grid_x][last_grid_y].visited = 1;
+            //world_grid[last_grid_x][last_grid_y].mark_visited=0;
+          }
           last_grid_x = start_grid_x;
           last_grid_y = start_grid_y;
         }    
@@ -2702,7 +2712,8 @@ void PathPlannerGrid::BrickAndMortar(AprilInterfaceAndVideoCapture &testbed, rob
       int ny = t.second-world_grid[t.first][t.second].parent.second+1;
       
       bool not_blocking = 1;//Marking Step starts
-      world_grid[t.first][t.second].visited = 1;
+      //world_grid[t.first][t.second].mark_visited= 1;
+      world_grid[t.first][t.second].visited= 1;//dummy marking to check connectivity, it inverted after marking step. if the cell is actually visited, it is marked so after the bot is out of the cell to prevent bot getting stuck in case of delays
       vector <pair<int, int>> ng(8);
       ng[0] = make_pair(-1, 0); //up
       ng[1] = make_pair(-1, 1); //up-right
@@ -2788,9 +2799,10 @@ void PathPlannerGrid::BrickAndMortar(AprilInterfaceAndVideoCapture &testbed, rob
           }
         }//if        
       }//for i
-
+      //world_grid[t.first][t.second].visited= 0;//dummy marking inverted
       if(not_blocking == 0)
       {
+        //world_grid[t.first][t.second].mark_visited = 0;
         world_grid[t.first][t.second].visited = 0;
       }// marking step ends
 
@@ -2835,7 +2847,7 @@ void PathPlannerGrid::BrickAndMortar(AprilInterfaceAndVideoCapture &testbed, rob
         {
           ngr = t.first + aj[nx][ny][i].first;
           ngc = t.second + aj[nx][ny][i].second;
-          if(isEmpty(ngr, ngc) && world_grid[ngr][ngc].visited!=1)
+          if(isEmpty(ngr, ngc) && world_grid[ngr][ngc].visited!=1 && world_grid[ngr][ngc].mark_visited!=1)
           {
             addBacktrackPointToStackAndPath(sk,incumbent_cells,ic_no,ngr,ngc,t,testbed);
             return;
@@ -3173,8 +3185,7 @@ void PathPlannerUser::drawPath(Mat &image){
 
 void PathPlannerGrid::DeadlockReplan(AprilInterfaceAndVideoCapture &testbed, vector<PathPlannerGrid> &bots){
   if(setRobotCellCoordinates(testbed.detections)<0)//set the start_grid_y, start_grid_x
-    return;
-    
+    return;     
     int i;
     bool empty_neighbor_found = false;
     int ngr, ngc;
@@ -3186,7 +3197,8 @@ void PathPlannerGrid::DeadlockReplan(AprilInterfaceAndVideoCapture &testbed, vec
         empty_neighbor_found = true;//found an empty cell to shift to.
         break;
       }
-    } 
+    }
+  cout<<"robot id: "<<robot_tag_id<<endl; 
   cout<<"paht point size: "<<path_points.size()<<endl;
   cout<<"next_target_index: "<<next_target_index<<endl;
   cout<<"total_points: "<<total_points<<endl;
@@ -3197,7 +3209,8 @@ void PathPlannerGrid::DeadlockReplan(AprilInterfaceAndVideoCapture &testbed, vec
   cout<<"index_travelled: "<<index_travelled<<endl;
   cout<<"next_target_index: "<<next_target_index<<endl;
   cout<<"empty_neighbor_found: "<<empty_neighbor_found<<endl;
-  if(status != 2 && !coverage_completed)
+  cout<<"start_grid_x, y: "<<start_grid_x<<" "<<start_grid_y<<endl;
+  if(status != 2 && !coverage_completed)//don't use next_target_index!=path_points.size()
   {
     cout<<"*********\ncomp\n**********\n";
     total_points+=2;
@@ -3213,7 +3226,7 @@ void PathPlannerGrid::DeadlockReplan(AprilInterfaceAndVideoCapture &testbed, vec
       path_points[i].y = path_points[i-2].y;
       pixel_path_points[i].first = pixel_path_points[i-2].first;
       pixel_path_points[i].second = pixel_path_points[i-2].second; 
-    }     
+    }       
     
     if(empty_neighbor_found){       
       int ax,ay;
@@ -3227,26 +3240,83 @@ void PathPlannerGrid::DeadlockReplan(AprilInterfaceAndVideoCapture &testbed, vec
       pixel_path_points[next_target_index].first = ax;
       pixel_path_points[next_target_index].second = ay; 
     }
+    else
+    {
+      cout<<"start_grid_x, y: "<<start_grid_x<<" "<<start_grid_y<<endl;
+      cout<<"empty neighbour not found!\n";
+      int var = 2;
+      int c1 = pixel_path_points[next_target_index-var].first/cell_size_x;
+      int r1 = pixel_path_points[next_target_index-var].second/cell_size_y;
+      cout<<"r1, c1: "<<r1<<" "<<c1<<endl;
+      while(r1==start_grid_x && c1==start_grid_y)
+      {
+        cout<<"in while!\n";
+        if(var>next_target_index)break;
+        var++;
+        c1 = pixel_path_points[next_target_index-var].first/cell_size_x;
+        r1 = pixel_path_points[next_target_index-var].second/cell_size_y;
+        cout<<"r1, c1: "<<r1<<" "<<c1<<endl;
+      }
+      cout<<"var: "<<var<<endl;
+      cout<<"&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n";
+      //cv::waitKey(0);
+      path_points[next_target_index].x = path_points[next_target_index-var].x;
+      path_points[next_target_index].y = path_points[next_target_index-var].y;
+      pixel_path_points[next_target_index].first = pixel_path_points[next_target_index-var].first;
+      pixel_path_points[next_target_index].second = pixel_path_points[next_target_index-var].second;
+    }
   }
 
   else
   {
     cout<<"*********\nelse\n**********\n";
     status = 1;
+    //coverage_completed = 0;
+    int current_end_y = pixel_path_points[total_points-1].first/cell_size_x;//don't change total points to next_target_index
+    int current_end_x = pixel_path_points[total_points-1].second/cell_size_y;
+    cout<<"end cells:  "<<current_end_x<<" "<<current_end_y<<endl;
     vector<pair<int,int> > incumbent_cells(rcells*ccells);
     int ic_no=0;
-    pair <int, int> t = make_pair(start_grid_x, start_grid_y);
-
+    //pair <int, int> t = make_pair(start_grid_x, start_grid_y);
+    pair <int, int> t = make_pair(current_end_x, current_end_y);
+    empty_neighbor_found = false;
+    for(i = 0; i < 4; i++)
+    {
+      ngr = current_end_x + aj[0][1][i].first;
+      ngc = current_end_y + aj[0][1][i].second;    
+      if(isEmpty(ngr,ngc) && world_grid[ngr][ngc].steps && world_grid[ngr][ngc].bot_presence.first!=1){//this mean the saio neighbouring cell is empty, has been visited and no bot is currently there
+        empty_neighbor_found = true;//found an empty cell to shift to.
+        break;
+      }
+    }
+    cout<<"ngr, ngc: "<<ngr<<" "<<ngc<<endl;
     if(empty_neighbor_found){       
       addBacktrackPointToStackAndPath(sk,incumbent_cells,ic_no,ngr,ngc,t,testbed);
     }
     else
     {
-      int c1 = pixel_path_points[total_points-2].first/cell_size_x;
-      int r1 = pixel_path_points[total_points-2].second/cell_size_y;
+      cout<<"else of else!\n";
+      cout<<"current cells: "<<start_grid_x<<" "<<start_grid_y<<endl;
+      int var = 2;//don't change var to 1
+      int c1 = pixel_path_points[total_points-var].first/cell_size_x;//don't change total points to next_target_index
+      int r1 = pixel_path_points[total_points-var].second/cell_size_y;      
+      cout<<"r1, c1: "<<r1<<" "<<c1<<endl;
+      while(r1==current_end_x && c1==current_end_y)
+      {
+        cout<<"in while!\n";
+        if(var>next_target_index)break;
+        var++;
+        c1 = pixel_path_points[total_points-var].first/cell_size_x;
+        r1 = pixel_path_points[total_points-var].second/cell_size_y;
+        cout<<"r1, c1: "<<r1<<" "<<c1<<endl;
+      }
+      cout<<"@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n";
+      cout<<"var: "<<var<<endl;
+      //cv::waitKey(0);
       addBacktrackPointToStackAndPath(sk,incumbent_cells,ic_no,r1,c1,t,testbed); 
     }
   }
+  cout<<"robot id: "<<robot_tag_id<<endl;
   cout<<"After replan!\n**********\n";
   cout<<"paht point size: "<<path_points.size()<<endl;
   cout<<"next_target_index: "<<next_target_index<<endl;
@@ -3258,6 +3328,21 @@ void PathPlannerGrid::DeadlockReplan(AprilInterfaceAndVideoCapture &testbed, vec
   cout<<"index_travelled: "<<index_travelled<<endl;
   cout<<"next_target_index: "<<next_target_index<<endl;
   cout<<"empty_neighbor_found: "<<empty_neighbor_found<<endl;
+  cout<<"start_grid_x, y: "<<start_grid_x<<" "<<start_grid_y<<endl;
+
+  cout<<"Still in DeadlockReplan!\n";
+  for(i = 0;i<total_points-1;i++){
+    if((abs((path_points[i].x)- (path_points[i+1].x)) + abs((path_points[i].y)- (path_points[i+1].y)))>1)
+    {
+      cout<<"first: "<<path_points[i].x<<" "<<path_points[i].y<<endl;
+      cout<<"next: "<<path_points[i+1].x<<" "<<path_points[i+1].y<<endl;
+      cout<<"robot_tag_id: "<<robot_tag_id<<endl;
+      cout<<"i: "<<i<<endl;
+      cout<<"manhattan_distance of target_grid_cell greater than 1\n";
+      cv::waitKey(0);
+    }
+  }
+  cout<<"After DeadlockReplan!\n";
 }
 
 void PathPlannerGrid::defineVoronoiPartition(AprilInterfaceAndVideoCapture &testbed, vector<PathPlannerGrid> &bots){

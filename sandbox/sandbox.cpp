@@ -37,6 +37,7 @@ int check_deadlock(vector<bot_config> &bots, int index)
   }
   int clear_flag = 0;
   int target_cell_bot_id = -1;
+
   while(!clear_flag)
   {
     cout<<"index: "<<index<<endl;
@@ -50,10 +51,30 @@ int check_deadlock(vector<bot_config> &bots, int index)
       bots[target_cell_bot_id].plan.deadlock_check_counter++;
       if(bots[target_cell_bot_id].plan.deadlock_check_counter > 1)
       {
-        break;
-      }
-      else if(bots[target_cell_bot_id].plan.status == 2 || bots[target_cell_bot_id].plan.coverage_completed==1)// to check if the said target bot has covered all its point and is in no position to move
-      {
+      	  cout<<"first detected bot: \n"<<target_cell_bot_id<<endl;
+      	  for(int i = 0; i < bots.size(); i++)//for repllaning the bot whose path has been least 
+		  {
+		    bots[i].plan.deadlock_check_counter = 0;
+		  }		  
+		  int min_called_bot_id = target_cell_bot_id;
+		  int min_calling_number = 100000000;
+		  while(1)
+		  {
+		    r = bots[target_cell_bot_id].plan.target_grid_cell.first;
+		    c = bots[target_cell_bot_id].plan.target_grid_cell.second;
+		    if(bots[target_cell_bot_id].plan.deadlock_check_counter>0)break;
+		    bots[target_cell_bot_id].plan.deadlock_check_counter++;
+		    
+		    if(bots[target_cell_bot_id].plan.deadlock_replanned <min_calling_number)
+		    {
+		    	min_calling_number = bots[target_cell_bot_id].plan.deadlock_replanned;
+		    	min_called_bot_id=target_cell_bot_id;
+		    }
+		    target_cell_bot_id = bots[target_cell_bot_id].plan.world_grid[r][c].bot_presence.second;
+		  }
+		  target_cell_bot_id = min_called_bot_id;
+		  bots[target_cell_bot_id].plan.deadlock_replanned++;
+		  cout<<"replanned_bot: "<<target_cell_bot_id<<endl;
         break;
       }
       else if(bots[target_cell_bot_id].plan.wait_to_plan == 1)
@@ -62,6 +83,11 @@ int check_deadlock(vector<bot_config> &bots, int index)
       	clear_flag = 1;
       	break;
       }
+      else if(bots[target_cell_bot_id].plan.status == 2 || bots[target_cell_bot_id].plan.coverage_completed==1)// to check if the said target bot has covered all its point and is in no position to move
+      {
+        break;
+      }
+     
       index = target_cell_bot_id;
       continue;
     }
@@ -103,6 +129,18 @@ bool check_collision_possibility(AprilInterfaceAndVideoCapture &testbed, vector<
     }*/
     if(bots[i].plan.world_grid[r][c].bot_presence.first == 1 && bots[i].plan.world_grid[r][c].bot_presence.second != bots[i].plan.robot_tag_id)
     {
+        for(int i = 0; i < bots.size(); i++)
+		{
+		  	bots[i].plan.setRobotCellCoordinates(testbed.detections);
+
+		  	bots[i].plan.next_target_index = bots[i].plan.index_travelled+1;
+		  	if(bots[i].plan.next_target_index!=bots[i].plan.path_points.size())
+		  	{
+		  		int c = (bots[i].plan.pixel_path_points[bots[i].plan.next_target_index].first)/(bots[i].plan.cell_size_x);
+			    int r = (bots[i].plan.pixel_path_points[bots[i].plan.next_target_index].second)/(bots[i].plan.cell_size_y);
+			    bots[i].plan.target_grid_cell = make_pair(r, c);
+		  	}
+		}
       int deadlocked_bot = check_deadlock(bots, i);
       if(deadlocked_bot != -1)
       {
@@ -1142,6 +1180,31 @@ int main(int argc, char* argv[]) {
   double end_t = tic();
   imshow(windowName,image);
 
+  bool succesful_termination = 1;
+  for(int i = 0; i < bots[0].plan.rcells; i++)
+  {
+    for(int j = 0; j < bots[0].plan.ccells; j++)
+    {
+    	if(bots[0].plan.isEmpty(i,j) && bots[0].plan.world_grid[i][j].steps!=1)
+        {
+            succesful_termination = 0;
+            cout<<"i, j: "<<i<<" "<<j<<endl;
+            break;
+        }
+    }    
+    if(succesful_termination == 0)
+    {
+       	break;
+    }
+  }
+  if(succesful_termination!=1)
+  {
+  	cout<<"NOT FULLY COVERED!\nNOT FULLY COVERED!\nNOT FULLY COVERED!\nNOT FULLY COVERED!\nNOT FULLY COVERED!\nNOT FULLY COVERED!\nNOT FULLY COVERED!\nNOT FULLY COVERED!\nNOT FULLY COVERED!\n";
+  }
+  else
+  {
+  	cout<<"*******************\nSuccesful Termination!\n*******************\n";
+  }
   cout<<"***********************\n***************\n";
     	for(int i = 0; i < bots.size(); i++)
     	{
@@ -1192,6 +1255,17 @@ int main(int argc, char* argv[]) {
 	cout<<"repeatedCoverage: "<<repeatedCoverage<<endl;
 	cout<<"Total Computation Time: "<<time_to_compute<<" sec."<<endl;	
 	cout<<"termination_time: "<<termination_time<<" sec."<<endl;
+	cout<<"***************************\n";
+
+	if(succesful_termination!=1)
+	  {
+	  	cout<<"NOT FULLY COVERED!\nNOT FULLY COVERED!\nNOT FULLY COVERED!\nNOT FULLY COVERED!\nNOT FULLY COVERED!\nNOT FULLY COVERED!\nNOT FULLY COVERED!\nNOT FULLY COVERED!\nNOT FULLY COVERED!\n";
+	  }
+	  else
+	  {
+	  	cout<<"*******************\nSuccesful Termination!\n*******************\n";
+	  }
+	 
     cv::waitKey(0);
   return 0;
 }
