@@ -3005,7 +3005,7 @@ void PathPlannerGrid::drawPath(Mat &image){
       cout<<"robot_tag_id: "<<robot_tag_id<<endl;
       cout<<"i: "<<i<<endl;
       cout<<"manhattan_distance of target_grid_cell greater than 1\n";
-      cv::waitKey(0);
+      //cv::waitKey(0);
     }
     line(image,Point(pixel_path_points[i].first,pixel_path_points[i].second),Point(pixel_path_points[i+1].first,pixel_path_points[i+1].second),path_color,2); 
   }
@@ -3270,7 +3270,7 @@ void PathPlannerGrid::DeadlockReplan(AprilInterfaceAndVideoCapture &testbed, vec
   else
   {
     cout<<"*********\nelse\n**********\n";
-    status = 1;
+    //status = 1;
     //coverage_completed = 0;
     int current_end_y = pixel_path_points[total_points-1].first/cell_size_x;//don't change total points to next_target_index
     int current_end_x = pixel_path_points[total_points-1].second/cell_size_y;
@@ -3339,7 +3339,7 @@ void PathPlannerGrid::DeadlockReplan(AprilInterfaceAndVideoCapture &testbed, vec
       cout<<"robot_tag_id: "<<robot_tag_id<<endl;
       cout<<"i: "<<i<<endl;
       cout<<"manhattan_distance of target_grid_cell greater than 1\n";
-      cv::waitKey(0);
+      //cv::waitKey(0);
     }
   }
   cout<<"After DeadlockReplan!\n";

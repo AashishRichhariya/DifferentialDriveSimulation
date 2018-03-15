@@ -165,16 +165,25 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 	vector <vector <vector <double>>> repetedsteps (number_of_maps);
 	vector <vector <vector <double>>> cummalative_path_length (number_of_maps);
 	vector <vector <vector <double>>> computationtime (number_of_maps);
-	vector <vector <vector <double>>> movement_time (number_of_maps);
+	vector <vector <vector <double>>> final_termination_time (number_of_maps);
+	vector <vector <vector <double>>> mean_of_idle_time (number_of_maps);
+	vector <vector <vector <double>>> percent_of_mean_idle_time (number_of_maps);
+	vector <vector <vector <double>>> range_of_path_length (number_of_maps);
+	vector <vector <vector <double>>> mean_robot_path_length (number_of_maps);
 
-	vector <int> number_of_robots = {1, 2/*, 4, 6, 8, 10, 12*/}; 
+
+	vector <int> number_of_robots = {1, 2, 4, 6, 8, 10, 12}; 
 	for(int a = 0; a < number_of_maps; a++)
 	{
 		iterations[a].resize(number_of_trials+3);
 		repetedsteps[a].resize(number_of_trials+3);
 		cummalative_path_length[a].resize(number_of_trials+3);
 		computationtime[a].resize(number_of_trials+3);
-		movement_time[a].resize(number_of_trials+3);//+3 because to add mean and SD and A blank line
+		final_termination_time[a].resize(number_of_trials+3);//+3 because to add mean and SD and A blank line
+		mean_of_idle_time[a].resize(number_of_trials+3);
+		percent_of_mean_idle_time[a].resize(number_of_trials+3);
+		range_of_path_length[a].resize(number_of_trials+3);
+		mean_robot_path_length[a].resize(number_of_trials+3);
 
 		string address;
 		switch(a)
@@ -186,19 +195,24 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 		
 		for(int b = 0; b < number_of_robots.size(); b++)			
 		{	
-			int trials = number_of_trials;						
+			int trials = number_of_trials;									
 			while(trials)
 			{	
 				bool problem_in_the_trial = 0;
-				vector <int> start_r(number_of_robots[b]);
-				vector <int> start_c(number_of_robots[b]);
-				vector <int> start_o(number_of_robots[b]);
+				vector <int> start_r(number_of_robots[b]);//starting row
+				vector <int> start_c(number_of_robots[b]);//starting column
+				vector <int> start_o(number_of_robots[b]);//starting orientaion
+
 				vector <int> total_iterations(number_of_algos);
 				vector <double> total_path_length(number_of_algos);
 				vector <int> repeatedCoverage(number_of_algos);
 				vector <double> time_to_compute(number_of_algos);
-				vector <double> total_movement_time(number_of_algos);
-				vector <double> complete_process(number_of_algos);
+				vector <double> termination_time(number_of_algos);
+				vector <double> mean_idle_time(number_of_algos);
+				vector <double> percent_mean_idle_time(number_of_algos);
+				vector <double> path_length_range(number_of_algos);
+				vector <double> mean_path_length(number_of_algos);
+	
 				int first_algo_call = 1;
 				for(int c = 0; c < number_of_algos; c++)
 				{
@@ -214,8 +228,12 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 					vector<PathPlannerGrid> planners(robotCount,PathPlannerGrid(tp));
 					int algo_select = c+1;
 					double start_t = tic();
-					double compute_time = 0;
-					double movement_time = 0;
+					double compute_time = 0;					
+					double start_movement = 0;
+  					double end_movement = 0;
+  					double move_straight_time = 2680;
+  					double turn_quarter_time = 1496;
+
 					while(true){
 						cout<<"*************************\n\n";
 						cout<<"Map: "<<a+1<<"/"<<number_of_maps<<endl;
@@ -224,7 +242,7 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 						cout<<"Algo Count: "<<c+1<<"/"<<number_of_algos<<endl;
 						cout<<"*************************\n\n";
 						total_iterations[c]++;
-						if(total_iterations[c]>35000)
+						if(total_iterations[c]>25000)
 						{
 							problem_in_the_trial = 1;
 							break;
@@ -289,70 +307,143 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 					      }   
 					    }
 					    double compute_end  = tic();
-
 					    time_to_compute[c] += (compute_end-compute_start);
-					    double start_movement = tic();
-					    pair <int, int> wheel_velocities;//dummy variable in case of simulation
-					    for(int i = 0;i<bots.size();i++){    
-					        bots[i].plan.next_target_index = bots[i].plan.index_travelled+1;
-					        if((bots[i].plan.next_target_index) < bots[i].plan.path_points.size())
-					        {
-					        	if(bots[i].plan.movement_made==1 && !first_iter)
+
+					    vector <pair<double, int>> time_left_to_move(bots.size());
+					    double time_since_last_movement;
+					    double current_time = tic();    
+						if(!first_iter)
+						{
+							for(int i = 0; i < bots.size(); i++)
+							{	
+								bots[i].plan.bot_start_movement=current_time;
+								bots[i].plan.next_target_index = bots[i].plan.index_travelled+1;
+					        	if((bots[i].plan.next_target_index) < bots[i].plan.path_points.size())
+					        	{
+					        	 	bots[i].plan.time_spent_in_computation += (bots[i].plan.bot_start_movement-end_movement);	
+									time_since_last_movement = current_time - bots[i].plan.last_move_time - bots[i].plan.time_spent_in_computation;
+									time_left_to_move[i].first = bots[i].plan.wait_time-time_since_last_movement;
+									time_left_to_move[i].second = bots[i].plan.robot_tag_id;									
+						        }
+						        else
 						        {
-						        	bots[i].plan.last_orient = bots[i].plan.current_orient;
-						        	int nx = bots[i].plan.path_points[bots[i].plan.next_target_index].x - bots[i].plan.path_points[bots[i].plan.next_target_index-1].x;
-						        	int ny = bots[i].plan.path_points[bots[i].plan.next_target_index].y - bots[i].plan.path_points[bots[i].plan.next_target_index-1].y;
-						        	if(nx==0 && ny==0) bots[i].plan.iter_wait = 0;
+						        	time_left_to_move[i].first = 100000000;
+									time_left_to_move[i].second = bots[i].plan.robot_tag_id;
+						        }						        
+							}							
+						}
+						sort(time_left_to_move.begin(), time_left_to_move.end());
+
+						start_movement = tic();
+					   	current_time = tic();
+
+					   	pair <int, int> wheel_velocities;//dummy variable in case of simulation
+					    for(int i = 0;i<bots.size();i++){    
+					        bots[time_left_to_move[i].second].plan.next_target_index = bots[time_left_to_move[i].second].plan.index_travelled+1;
+					        if((bots[time_left_to_move[i].second].plan.next_target_index) != bots[time_left_to_move[i].second].plan.path_points.size())
+					        {
+					        	cout<<"id: "<<bots[time_left_to_move[i].second].plan.robot_tag_id<<endl;
+					        	if(bots[time_left_to_move[i].second].plan.movement_made==1 && !first_iter)
+						        {
+						        	bots[time_left_to_move[i].second].plan.last_orient = bots[time_left_to_move[i].second].plan.current_orient;
+						        	int nx = bots[time_left_to_move[i].second].plan.path_points[bots[time_left_to_move[i].second].plan.next_target_index].x - bots[time_left_to_move[i].second].plan.path_points[bots[time_left_to_move[i].second].plan.next_target_index-1].x;
+						        	int ny = bots[time_left_to_move[i].second].plan.path_points[bots[time_left_to_move[i].second].plan.next_target_index].y - bots[time_left_to_move[i].second].plan.path_points[bots[time_left_to_move[i].second].plan.next_target_index-1].y;
+						        	if(nx==0 && ny==0) bots[time_left_to_move[i].second].plan.iter_wait = 0;
 						        	else if(nx == -1 && ny == 0 )//up
 						        	{
-						        		bots[i].plan.current_orient = 0;	        	
+						        		bots[time_left_to_move[i].second].plan.current_orient = 0;	        	
 						        	}
 						        	else if(nx == 0 && ny == 1)//right
 						        	{
-						        		bots[i].plan.current_orient = 1;
+						        		bots[time_left_to_move[i].second].plan.current_orient = 1;
 						        	}
 						        	else if(nx == 1 && ny == 0)//down
 						        	{
-						        		bots[i].plan.current_orient = 2;
+						        		bots[time_left_to_move[i].second].plan.current_orient = 2;
 						        	}
 						        	else if(nx == 0 && ny == -1)//left
 						        	{
-						        		bots[i].plan.current_orient = 3;
+						        		bots[time_left_to_move[i].second].plan.current_orient = 3;
 						        	}
 						        	if(!(nx==0 && ny==0))
 						        	{
-						        		if(abs(bots[i].plan.current_orient - bots[i].plan.last_orient)==0)
+						        		if(abs(bots[time_left_to_move[i].second].plan.current_orient - bots[time_left_to_move[i].second].plan.last_orient)==0)//moving straight
 						        		{
-						        			bots[i].plan.iter_wait = 0 + rand()%3;
+						        			bots[time_left_to_move[i].second].plan.way_to_move = 0;
+						        			//bots[time_left_to_move[i].second].plan.iter_wait = 0 + rand()%3;
+						        			double rand_delay = rand()%600;
+						        			rand_delay = 300 - rand_delay;
+						        			bots[time_left_to_move[i].second].plan.path_completion_time += (move_straight_time + rand_delay)/1000;
+						        			bots[time_left_to_move[i].second].plan.wait_time = (move_straight_time + rand_delay)/(100000000);
 						        		}
-						        		else if(abs(bots[i].plan.current_orient - bots[i].plan.last_orient)%3==0)
+						        		else if(abs(bots[time_left_to_move[i].second].plan.current_orient - bots[time_left_to_move[i].second].plan.last_orient)%3==0)//moving 90 degree
 						        		{
-						        			bots[i].plan.iter_wait = 3 + rand()%3;
+						        			bots[time_left_to_move[i].second].plan.way_to_move = 1;
+						        			//bots[time_left_to_move[i].second].plan.iter_wait = 3 + rand()%3;
+						        			double rand_delay_straight = rand()%600;
+						        			rand_delay_straight = 300 - rand_delay_straight;
+						        			double rand_delay_turn = rand()%400;
+						        			rand_delay_turn = 200 - rand_delay_turn;
+						        			double rand_delay = rand_delay_straight + rand_delay_turn;
+						        			bots[time_left_to_move[i].second].plan.path_completion_time += (move_straight_time + turn_quarter_time+ rand_delay)/1000;
+						        			bots[time_left_to_move[i].second].plan.wait_time = (move_straight_time + turn_quarter_time+ rand_delay)/(100000000);
 						        		}
-						        		else if(abs(bots[i].plan.current_orient - bots[i].plan.last_orient)==1)
+						        		else if(abs(bots[time_left_to_move[i].second].plan.current_orient - bots[time_left_to_move[i].second].plan.last_orient)==1)//moving 90 degree
 						        		{
-						        			bots[i].plan.iter_wait = 3 + rand()%3;
+						        			bots[time_left_to_move[i].second].plan.way_to_move = 1;
+						        			double rand_delay_straight = rand()%600;
+						        			rand_delay_straight = 300 - rand_delay_straight;
+						        			double rand_delay_turn = rand()%400;
+						        			rand_delay_turn = 200 - rand_delay_turn;
+						        			double rand_delay = rand_delay_straight + rand_delay_turn;
+						        			bots[time_left_to_move[i].second].plan.path_completion_time += (move_straight_time + turn_quarter_time+ rand_delay)/1000;
+						        			bots[time_left_to_move[i].second].plan.wait_time = (move_straight_time + turn_quarter_time+ rand_delay)/(100000000);
+						        			//bots[time_left_to_move[i].second].plan.iter_wait = 3 + rand()%3;
 						        		}
-						        		else if(abs(bots[i].plan.current_orient - bots[i].plan.last_orient)==2)
+						        		else if(abs(bots[time_left_to_move[i].second].plan.current_orient - bots[time_left_to_move[i].second].plan.last_orient)==2)//moving 180 degree
 						        		{
-						        			bots[i].plan.iter_wait = 6 + rand()%3;
+						        			bots[time_left_to_move[i].second].plan.way_to_move = 2;
+						        			double rand_delay_straight = rand()%600;
+						        			rand_delay_straight = 300 - rand_delay_straight;
+						        			double rand_delay_turn = rand()%400;
+						        			rand_delay_turn = 200 - rand_delay_turn;
+						        			double rand_delay = rand_delay_straight + rand_delay_turn;
+						        			bots[time_left_to_move[i].second].plan.path_completion_time += (move_straight_time + turn_quarter_time + turn_quarter_time+ rand_delay)/1000;
+						        			bots[time_left_to_move[i].second].plan.wait_time = (move_straight_time + turn_quarter_time+ turn_quarter_time + rand_delay)/(100000000);
+						        			//bots[time_left_to_move[i].second].plan.iter_wait = 6 + rand()%3;
 						        		}
 						        	}
-						        } 
-					        	if(!check_collision_possibility(testbed, planners, bots, wheel_velocities, i) /*&& bots[i].plan.iter_wait <=0*/) {
-					        		bots[i].plan.index_travelled++;
-					        		bots[i].plan.updateMovementinSimulation(testbed);
-					        		bots[i].plan.movement_made = 1;
+						        }
+						        
+						        bots[time_left_to_move[i].second].plan.time_spent_in_computation += (start_movement-bots[time_left_to_move[i].second].plan.bot_start_movement);
+						        time_since_last_movement = current_time - bots[time_left_to_move[i].second].plan.last_move_time - bots[time_left_to_move[i].second].plan.time_spent_in_computation;						       
+					        	if((time_since_last_movement >= bots[time_left_to_move[i].second].plan.wait_time) && !check_collision_possibility(testbed, planners, bots, wheel_velocities, time_left_to_move[i].second) /*&& bots[time_left_to_move[i].second].plan.iter_wait <=0!*/) {
+					        		       		
+					        		bots[time_left_to_move[i].second].plan.index_travelled++;
+					        		bots[time_left_to_move[i].second].plan.updateMovementinSimulation(testbed);
+					       			planners[time_left_to_move[i].second] = bots[time_left_to_move[i].second].plan;
+					        		bots[time_left_to_move[i].second].plan.movement_made = 1;
+					        		bots[time_left_to_move[i].second].plan.time_spent_in_computation = 0;
 					        	}
-					        	else{
-					        	bots[i].plan.iter_wait--; 
-					        	bots[i].plan.movement_made = 0;
-					        	}    	
-					        }     
-					   	}
-					   	double end_movement = tic();
-					   	total_movement_time[c] += (end_movement-start_movement);
-				/*	   	bots[0].plan.drawGrid(image, planners);
+					        	else{	        	
+						        	bots[time_left_to_move[i].second].plan.movement_made = 0;
+					        	}        	
+					        }    
+					   	}   					   	
+					   	end_movement = tic();
+					   	for(int i = 0; i < bots.size(); i++)
+						{	    
+						    if(bots[i].plan.movement_made==1)
+							{
+							   bots[i].plan.last_move_time = end_movement;
+							}
+						      		
+						}
+
+
+
+					   	/*
+					   	bots[0].plan.drawGrid(image, planners);
 					   	for(int i = 0;i<bots.size();i++){      	
 					        bots[i].plan.drawPath(image);        
 					    }
@@ -380,13 +471,59 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 					    {
 					     	first_iter = 0;
 					    }
-					  /*  if (cv::waitKey(1) == 27){
+					   /* if (cv::waitKey(1) == 27){
 					        break;//until escape is pressed
 					    }*/
 					}//while true
-					if(problem_in_the_trial) break;
 					double end_t = tic();
+					bool succesful_termination = 1;
+					for(int i = 0; i < bots[0].plan.rcells; i++)
+					{
+						for(int j = 0; j < bots[0].plan.ccells; j++)
+					    {
+					    	if(bots[0].plan.isEmpty(i,j) && bots[0].plan.world_grid[i][j].steps!=1)
+					        {
+					            succesful_termination = 0;
+					            break;
+					        }
+					    }    
+					    if(succesful_termination == 0)
+					    {
+					       	break;
+					    }
+					}	
+					if(succesful_termination!=1) problem_in_the_trial = 1;
+					for(int j = 0; j < bots.size(); j++)
+					{
+						if(problem_in_the_trial == 1) break;
+						for(int i = 0;i<bots[j].plan.total_points-1;i++){
+						    if((abs((bots[j].plan.path_points[i].x)-(bots[j].plan.path_points[i+1].x)) + abs((bots[j].plan.path_points[i].y)- (bots[j].plan.path_points[i+1].y)))>1)
+						    {
+						      problem_in_the_trial = 1;						      
+						      cout<<"manhattan_distance of target_grid_cell greater than 1\n";
+						      break;
+						    }						    
+						}
+						if(problem_in_the_trial == 1) break;
+					}	
+					
+					if(problem_in_the_trial) break;
   					//imshow(windowName,image);
+  					int min_length = 100000000;
+			    	int max_length = 0;
+			    	for(int i = 0; i < bots.size(); i++)
+			    	{
+			    		if(bots[i].plan.path_points.size()<min_length)
+			    		{
+			    			min_length = bots[i].plan.path_points.size();
+			    		}
+			    		if(bots[i].plan.path_points.size() > max_length)
+			    		{
+			    			max_length = bots[i].plan.path_points.size();
+			    		}
+			    	}
+			    	path_length_range[c] = max_length-min_length;		    	
+
   					vector <vector<int>> coverage(bots[0].plan.rcells);
 					for(int i = 0; i < bots[0].plan.rcells; i++)
 					{
@@ -404,29 +541,60 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 							}
 						}
 					}
-					/*time_to_compute[c] = compute_time;
-					total_movement_time[c] = movement_time;*/
-					complete_process[c] = end_t - start_t;
+
+					double max_time = -1;
+					for(int i = 0; i < bots.size();i++)
+					{						
+						if(bots[i].plan.path_completion_time > max_time)
+						{
+							max_time = bots[i].plan.path_completion_time;
+						}
+					}
+					termination_time[c] = max_time + time_to_compute[c];
+
+					double cumulative_idle_time = 0;
+					for(int i = 0; i < bots.size();i++)
+					{
+						cumulative_idle_time += (termination_time[c]-bots[i].plan.path_completion_time);
+					}
+					mean_idle_time[c] = cumulative_idle_time/bots.size();
+					mean_path_length[c] = total_path_length[c]/bots.size();
+					percent_mean_idle_time[c] = (mean_idle_time[c]/termination_time[c])*100;
+					
+					total_path_length[c] = total_path_length[c]/2; //in ft.
+					path_length_range[c] = path_length_range[c]/2;
+					mean_path_length[c] = mean_path_length[c]/2;
+
 					cout<<"***************************\n";
 					cout<<"Results: "<<endl;
 					cout<<"total_iterations: "<<total_iterations[c]<<endl;
-					cout<<"total_path_length: "<<total_path_length[c]<<endl;
+					cout<<"total_path_length: "<<total_path_length[c]<<" ft."<<endl;
 					cout<<"repeatedCoverage: "<<repeatedCoverage[c]<<endl;
-					cout<<"Total Computation Time: "<<time_to_compute[c]<<endl;
-					cout<<"total_movement_time: "<<total_movement_time[c]<<endl;	
-					cout<<"Complete Process (everything): "<<complete_process[c]<<endl;
+					cout<<"Total Computation Time: "<<time_to_compute[c]<<" sec."<<endl;
+					cout<<"termination_time: "<<termination_time[c]<<" sec."<<endl;
+					cout<<"Mean idle time: "<<mean_idle_time[c]<<" sec."<<endl;
+					cout<<"Mean idle time as a percent of termination_time: "<<percent_mean_idle_time[c]<<"%"<<endl;
+					cout<<"path_legth_range (Max - Min): "<<path_length_range[c]<<" ft."<<endl;
+					cout<<"Mean path length: "<<mean_path_length[c]<<" ft."<<endl;
+					cout<<"***************************\n";	
+
 					//cv::waitKey(0);
 				}//for c
+				
 				if(problem_in_the_trial) continue;
 				//values to be logged here
+		
 				for(int i = 0; i < number_of_algos; i++)
 				{
 					iterations[a][number_of_trials-trials].push_back(total_iterations[i]);
 					repetedsteps[a][number_of_trials-trials].push_back(repeatedCoverage[i]);
 					cummalative_path_length[a][number_of_trials-trials].push_back(total_path_length[i]);
 					computationtime[a][number_of_trials-trials].push_back(time_to_compute[i]);
-					movement_time[a][number_of_trials-trials].push_back(total_movement_time[i]);
-				
+					final_termination_time[a][number_of_trials-trials].push_back(termination_time[i]);
+					mean_of_idle_time[a][number_of_trials-trials].push_back(mean_idle_time[i]);
+					percent_of_mean_idle_time[a][number_of_trials-trials].push_back(percent_mean_idle_time[i]);
+					range_of_path_length[a][number_of_trials-trials].push_back(path_length_range[i]);
+					mean_robot_path_length[a][number_of_trials-trials].push_back(mean_path_length[i]);
 				}
 				
 				trials--;
@@ -442,8 +610,7 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 		
 		for(int i = 0; i < row_size; i++)
 		{
-			//if(i!=0 && (i%number_of_algos)==0) continue;
-			
+			//if(i!=0 && (i%number_of_algos)==0) continue;				
 			double sum_iterations = 0;
 			double mean_iterations = 0;
 			double sd_iterations = 0;
@@ -452,58 +619,100 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 			double mean_redundant = 0;
 			double sd_redundant = 0;
 
-			double sum_pathlength = 0;
-			double mean_pathlength = 0;
-			double sd_pathlength= 0;
+			double sum_cumulativepathlength = 0;
+			double mean_cumulativepathlength = 0;
+			double sd_cumulativepathlength= 0;
 
 			double sum_com_time = 0;
 			double mean_com_time = 0;
 			double sd_com_time = 0;
 
-			double sum_move_time = 0;
-			double mean_move_time = 0;
-			double sd_move_time = 0;
+			double sum_termination_time = 0;
+			double mean_termination_time = 0;
+			double sd_termination_time = 0;
+
+			//new
+			double sum_mean_idle_time = 0;
+			double mean_mean_idle_time = 0;
+			double sd_mean_idle_time = 0;
+
+			double sum_percent_mean_idle_time = 0;
+			double mean_percent_mean_idle_time = 0;
+			double sd_percent_mean_idle_time = 0;
+
+			double sum_range_path_length = 0;
+			double mean_range_path_length = 0;
+			double sd_range_path_length = 0;
+
+			double sum_mean_robot_path_length = 0;
+			double mean_mean_robot_path_length = 0;
+			double sd_mean_robot_path_length = 0;
+
 			
 			for(int j = 0; j < number_of_trials; j++)
 			{
 				sum_iterations+= iterations[a][j][i];
 				sum_redundant+= repetedsteps[a][j][i];
-				sum_pathlength+= cummalative_path_length[a][j][i];
+				sum_cumulativepathlength+= cummalative_path_length[a][j][i];
 				sum_com_time+= computationtime[a][j][i];
-				sum_move_time += movement_time[a][j][i];
+				sum_termination_time += final_termination_time[a][j][i];
+				sum_mean_idle_time+=mean_of_idle_time[a][j][i];
+				sum_percent_mean_idle_time+=percent_of_mean_idle_time[a][j][i];
+				sum_range_path_length+=range_of_path_length[a][j][i];
+				sum_mean_robot_path_length+=mean_robot_path_length[a][j][i];
 			}
 			mean_iterations = sum_iterations/number_of_trials;
 			mean_redundant = sum_redundant/number_of_trials;
-			mean_pathlength = sum_pathlength/number_of_trials;
+			mean_cumulativepathlength = sum_cumulativepathlength/number_of_trials;
 			mean_com_time = sum_com_time/number_of_trials;
-			mean_move_time = sum_move_time/number_of_trials;
+			mean_termination_time = sum_termination_time/number_of_trials;
+			mean_mean_idle_time = sum_mean_idle_time/number_of_trials;
+			mean_percent_mean_idle_time = sum_percent_mean_idle_time/number_of_trials;
+			mean_range_path_length = sum_range_path_length/number_of_trials;
+			mean_mean_robot_path_length = sum_mean_robot_path_length/number_of_trials;
 
 			iterations[a][number_of_trials+1].push_back(mean_iterations);
 			repetedsteps[a][number_of_trials+1].push_back(mean_redundant);
-			cummalative_path_length[a][number_of_trials+1].push_back(mean_pathlength);
+			cummalative_path_length[a][number_of_trials+1].push_back(mean_cumulativepathlength);
 			computationtime[a][number_of_trials+1].push_back(mean_com_time);
-			movement_time[a][number_of_trials+1].push_back(mean_move_time);
+			final_termination_time[a][number_of_trials+1].push_back(mean_termination_time);
+			mean_of_idle_time[a][number_of_trials+1].push_back(mean_mean_idle_time);
+			percent_of_mean_idle_time[a][number_of_trials+1].push_back(mean_percent_mean_idle_time);
+			range_of_path_length[a][number_of_trials+1].push_back(mean_range_path_length);
+			mean_robot_path_length[a][number_of_trials+1].push_back(mean_mean_robot_path_length);
 
 			for(int j = 0; j < number_of_trials; j++)
 			{
 				sd_iterations+= pow((iterations[a][j][i] - mean_iterations),2);
 				sd_redundant+= pow((repetedsteps[a][j][i] - mean_redundant),2);
-				sd_pathlength+= pow((cummalative_path_length[a][j][i] - mean_pathlength),2);
+				sd_cumulativepathlength+= pow((cummalative_path_length[a][j][i] - mean_cumulativepathlength),2);
 				sd_com_time+= pow((computationtime[a][j][i] - mean_com_time),2);
-				sd_move_time+= pow((movement_time[a][j][i] - mean_move_time),2);
+				sd_termination_time+= pow((final_termination_time[a][j][i] - mean_termination_time),2);
+				sd_mean_idle_time+=pow((mean_of_idle_time[a][j][i] - mean_mean_idle_time), 2);
+				sd_percent_mean_idle_time+=pow((percent_of_mean_idle_time[a][j][i] - mean_percent_mean_idle_time), 2);
+				sd_range_path_length+=pow((range_of_path_length[a][j][i] - mean_range_path_length), 2);
+				sd_mean_robot_path_length+=pow((mean_robot_path_length[a][j][i] - mean_mean_robot_path_length), 2);
 			}
 
 			sd_iterations = sqrt(sd_iterations/number_of_trials);
 			sd_redundant = sqrt(sd_redundant/number_of_trials);
-			sd_pathlength = sqrt(sd_pathlength/number_of_trials);
+			sd_cumulativepathlength = sqrt(sd_cumulativepathlength/number_of_trials);
 			sd_com_time = sqrt(sd_com_time/number_of_trials);
-			sd_move_time = sqrt(sd_move_time/number_of_trials);
+			sd_termination_time = sqrt(sd_termination_time/number_of_trials);
+			sd_mean_idle_time =sqrt(sd_mean_idle_time/number_of_trials);
+			sd_percent_mean_idle_time =sqrt(sd_percent_mean_idle_time/number_of_trials);
+			sd_range_path_length =sqrt(sd_range_path_length/number_of_trials);
+			sd_mean_robot_path_length =sqrt(sd_mean_robot_path_length/number_of_trials);
 
 			iterations[a][number_of_trials+2].push_back(sd_iterations);
 			repetedsteps[a][number_of_trials+2].push_back(sd_redundant);
-			cummalative_path_length[a][number_of_trials+2].push_back(sd_pathlength);
+			cummalative_path_length[a][number_of_trials+2].push_back(sd_cumulativepathlength);
 			computationtime[a][number_of_trials+2].push_back(sd_com_time);
-			movement_time[a][number_of_trials+2].push_back(sd_move_time);
+			final_termination_time[a][number_of_trials+2].push_back(sd_termination_time);
+			mean_of_idle_time[a][number_of_trials+2].push_back(sd_mean_idle_time);
+			percent_of_mean_idle_time[a][number_of_trials+2].push_back(sd_percent_mean_idle_time);
+			range_of_path_length[a][number_of_trials+2].push_back(sd_range_path_length);
+			mean_robot_path_length[a][number_of_trials+2].push_back(sd_mean_robot_path_length);
 		}
 	}
 
@@ -515,9 +724,9 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 		string save_address;
 		switch(a)
 		{
-			case 0: path = "../../Results/Basic/"; break;
-			case 1: path = "../../Results/Cluttered/"; break;
-			case 2: path = "../../Results/Office/"; break;
+			case 0: path = "../Results/Basic/"; break;
+			case 1: path = "../Results/Cluttered/"; break;
+			case 2: path = "../Results/Office/"; break;
 		}	
 		cout<<"*************\n";
 		cout<<"Map #"<<a<<endl<<endl<<endl;
@@ -645,13 +854,13 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 		}	
 		outputFile.close();				
 		cout<<endl;
-		cout<<"total_movement_time: "<<endl;
-		save_address = path +"total_movement_time.csv";
+		cout<<"fina'_termination_time: "<<endl;
+		save_address = path +"final_termination_time.csv";
 		outputFile.open(save_address);
 		for(int i = 0; i < number_of_trials + 3; i++)
 		{
 			l = 0;
-			for(int j = 0; j < movement_time[a][i].size(); j++)
+			for(int j = 0; j < final_termination_time[a][i].size(); j++)
 			{
 				if(i==number_of_trials)
 				{
@@ -660,8 +869,8 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 					continue;
 				}
 			
-				outputFile<<movement_time[a][i][j]<<",";
-				cout<<movement_time[a][i][j]<<" ";
+				outputFile<<final_termination_time[a][i][j]<<",";
+				cout<<final_termination_time[a][i][j]<<" ";
 				l++;
 				l%=number_of_algos;
 				if(l==0)
@@ -675,16 +884,628 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 		}		
 		outputFile.close();
 		cout<<endl;
+
+		cout<<"mean_of_idle_time: "<<endl;
+		save_address = path +"mean_of_idle_time.csv";
+		outputFile.open(save_address);
+		for(int i = 0; i < number_of_trials + 3; i++)
+		{
+			l = 0;
+			for(int j = 0; j < mean_of_idle_time[a][i].size(); j++)
+			{
+				if(i==number_of_trials)
+				{
+					outputFile<<" "<<",";
+					cout<<"** ";
+					continue;
+				}
+			
+				outputFile<<mean_of_idle_time[a][i][j]<<",";
+				cout<<mean_of_idle_time[a][i][j]<<" ";
+				l++;
+				l%=number_of_algos;
+				if(l==0)
+				{
+					outputFile<<" "<<",";
+					cout<<"** ";
+				}
+			}
+			outputFile<<endl;
+			cout<<endl;
+		}		
+		outputFile.close();
+		cout<<endl;
+
+
+		cout<<"percent_of_mean_idle_time: "<<endl;
+		save_address = path +"percent_of_mean_idle_time.csv";
+		outputFile.open(save_address);
+		for(int i = 0; i < number_of_trials + 3; i++)
+		{
+			l = 0;
+			for(int j = 0; j < percent_of_mean_idle_time[a][i].size(); j++)
+			{
+				if(i==number_of_trials)
+				{
+					outputFile<<" "<<",";
+					cout<<"** ";
+					continue;
+				}
+			
+				outputFile<<percent_of_mean_idle_time[a][i][j]<<",";
+				cout<<percent_of_mean_idle_time[a][i][j]<<" ";
+				l++;
+				l%=number_of_algos;
+				if(l==0)
+				{
+					outputFile<<" "<<",";
+					cout<<"** ";
+				}
+			}
+			outputFile<<endl;
+			cout<<endl;
+		}		
+		outputFile.close();
+		cout<<endl;
+
+
+		cout<<"range_of_path_length: "<<endl;
+		save_address = path +"range_of_path_length.csv";
+		outputFile.open(save_address);
+		for(int i = 0; i < number_of_trials + 3; i++)
+		{
+			l = 0;
+			for(int j = 0; j < range_of_path_length[a][i].size(); j++)
+			{
+				if(i==number_of_trials)
+				{
+					outputFile<<" "<<",";
+					cout<<"** ";
+					continue;
+				}
+			
+				outputFile<<range_of_path_length[a][i][j]<<",";
+				cout<<range_of_path_length[a][i][j]<<" ";
+				l++;
+				l%=number_of_algos;
+				if(l==0)
+				{
+					outputFile<<" "<<",";
+					cout<<"** ";
+				}
+			}
+			outputFile<<endl;
+			cout<<endl;
+		}		
+		outputFile.close();
+		cout<<endl;
+
+		cout<<"mean_robot_path_length: "<<endl;
+		save_address = path +"mean_robot_path_length.csv";
+		outputFile.open(save_address);
+		for(int i = 0; i < number_of_trials + 3; i++)
+		{
+			l = 0;
+			for(int j = 0; j < mean_robot_path_length[a][i].size(); j++)
+			{
+				if(i==number_of_trials)
+				{
+					outputFile<<" "<<",";
+					cout<<"** ";
+					continue;
+				}
+			
+				outputFile<<mean_robot_path_length[a][i][j]<<",";
+				cout<<mean_robot_path_length[a][i][j]<<" ";
+				l++;
+				l%=number_of_algos;
+				if(l==0)
+				{
+					outputFile<<" "<<",";
+					cout<<"** ";
+				}
+			}
+			outputFile<<endl;
+			cout<<endl;
+		}		
+		outputFile.close();
+		cout<<endl;
+
+		cout<<"******************************************************\n";
+		cout<<"Mean matrix: \n";
+
+		cout<<"iterations: "<<endl;
+		save_address= path + "Mean/mean_iterations.csv";
+		outputFile.open(save_address);
+		outputFile<<" "<<",";
+		outputFile<<"BSA-CM (Basic)"<<",";
+		outputFile<<"BSA-CM (Updated Backtracking)"<<",";
+		outputFile<<"Boustrophedon Motion (Updated Backtracking)"<<",";
+		outputFile<<"Boustrophedon Motion (BSA-CM like Backtracking)"<<",";
+		outputFile<<"BoB"<<",";
+		outputFile<<"MDFS"<<",";
+		outputFile<<"Brick and Mortar"<<",";
+		outputFile<<endl;
+
+		for(int i = 0; i < number_of_robots.size(); i++)
+		{
+			outputFile<<number_of_robots[i]<<",";
+			for(int j = 0; j < number_of_algos; j++)
+			{
+				outputFile<<iterations[a][number_of_trials+1][(i*number_of_algos)+j]<<",";
+				cout<<iterations[a][number_of_trials+1][(i*number_of_algos)+j]<<" ";
+			}
+			outputFile<<endl;
+			cout<<endl;
+		}
+		outputFile.close();	
+		cout<<endl;
+
+		cout<<"Redundant Coverage: "<<endl;
+		save_address = path +"Mean/mean_RedundantCoverage.csv";
+		outputFile.open(save_address);
+		outputFile<<" "<<",";
+		outputFile<<"BSA-CM (Basic)"<<",";
+		outputFile<<"BSA-CM (Updated Backtracking)"<<",";
+		outputFile<<"Boustrophedon Motion (Updated Backtracking)"<<",";
+		outputFile<<"Boustrophedon Motion (BSA-CM like Backtracking)"<<",";
+		outputFile<<"BoB"<<",";
+		outputFile<<"MDFS"<<",";
+		outputFile<<"Brick and Mortar"<<",";
+		outputFile<<endl;
+
+		for(int i = 0; i < number_of_robots.size(); i++)
+		{
+			outputFile<<number_of_robots[i]<<",";
+			for(int j = 0; j < number_of_algos; j++)
+			{
+				outputFile<<repetedsteps[a][number_of_trials+1][(i*number_of_algos)+j]<<",";
+				cout<<repetedsteps[a][number_of_trials+1][(i*number_of_algos)+j]<<" ";
+			}
+			outputFile<<endl;
+			cout<<endl;
+		}
+		outputFile.close();	
+		cout<<endl;
+
+		cout<<"total_path_length: "<<endl;
+		save_address = path +"Mean/mean_total_path_length.csv";
+		outputFile.open(save_address);
+		outputFile<<" "<<",";
+		outputFile<<"BSA-CM (Basic)"<<",";
+		outputFile<<"BSA-CM (Updated Backtracking)"<<",";
+		outputFile<<"Boustrophedon Motion (Updated Backtracking)"<<",";
+		outputFile<<"Boustrophedon Motion (BSA-CM like Backtracking)"<<",";
+		outputFile<<"BoB"<<",";
+		outputFile<<"MDFS"<<",";
+		outputFile<<"Brick and Mortar"<<",";
+		outputFile<<endl;
+
+		for(int i = 0; i < number_of_robots.size(); i++)
+		{
+			outputFile<<number_of_robots[i]<<",";
+			for(int j = 0; j < number_of_algos; j++)
+			{
+				outputFile<<cummalative_path_length[a][number_of_trials+1][(i*number_of_algos)+j]<<",";
+				cout<<cummalative_path_length[a][number_of_trials+1][(i*number_of_algos)+j]<<" ";
+			}
+			outputFile<<endl;
+			cout<<endl;
+		}
+		outputFile.close();	
+		cout<<endl;
+
+		cout<<"Computation time: "<<endl;
+		save_address = path + "Mean/mean_ComputationTime.csv";
+		outputFile.open(save_address);
+		outputFile<<" "<<",";
+		outputFile<<"BSA-CM (Basic)"<<",";
+		outputFile<<"BSA-CM (Updated Backtracking)"<<",";
+		outputFile<<"Boustrophedon Motion (Updated Backtracking)"<<",";
+		outputFile<<"Boustrophedon Motion (BSA-CM like Backtracking)"<<",";
+		outputFile<<"BoB"<<",";
+		outputFile<<"MDFS"<<",";
+		outputFile<<"Brick and Mortar"<<",";
+		outputFile<<endl;
+		for(int i = 0; i < number_of_robots.size(); i++)
+		{
+			outputFile<<number_of_robots[i]<<",";
+			for(int j = 0; j < number_of_algos; j++)
+			{
+				outputFile<<computationtime[a][number_of_trials+1][(i*number_of_algos)+j]<<",";
+				cout<<computationtime[a][number_of_trials+1][(i*number_of_algos)+j]<<" ";
+			}
+			outputFile<<endl;
+			cout<<endl;
+		}
+		outputFile.close();				
+		cout<<endl;
+		cout<<"final_termination_time: "<<endl;
+		save_address = path + "Mean/mean_final_termination_time.csv";
+		outputFile.open(save_address);
+		outputFile<<" "<<",";
+		outputFile<<"BSA-CM (Basic)"<<",";
+		outputFile<<"BSA-CM (Updated Backtracking)"<<",";
+		outputFile<<"Boustrophedon Motion (Updated Backtracking)"<<",";
+		outputFile<<"Boustrophedon Motion (BSA-CM like Backtracking)"<<",";
+		outputFile<<"BoB"<<",";
+		outputFile<<"MDFS"<<",";
+		outputFile<<"Brick and Mortar"<<",";
+		outputFile<<endl;
+		for(int i = 0; i < number_of_robots.size(); i++)
+		{
+			outputFile<<number_of_robots[i]<<",";
+			for(int j = 0; j < number_of_algos; j++)
+			{
+				outputFile<<final_termination_time[a][number_of_trials+1][(i*number_of_algos)+j]<<",";
+				cout<<final_termination_time[a][number_of_trials+1][(i*number_of_algos)+j]<<" ";
+			}
+			outputFile<<endl;
+			cout<<endl;
+		}
+		outputFile.close();				
+		cout<<endl;
+		cout<<"mean_of_idle_time: "<<endl;
+		save_address = path + "Mean/mean_mean_of_idle_time.csv";
+		outputFile.open(save_address);
+		outputFile<<" "<<",";
+		outputFile<<"BSA-CM (Basic)"<<",";
+		outputFile<<"BSA-CM (Updated Backtracking)"<<",";
+		outputFile<<"Boustrophedon Motion (Updated Backtracking)"<<",";
+		outputFile<<"Boustrophedon Motion (BSA-CM like Backtracking)"<<",";
+		outputFile<<"BoB"<<",";
+		outputFile<<"MDFS"<<",";
+		outputFile<<"Brick and Mortar"<<",";
+		outputFile<<endl;
+		for(int i = 0; i < number_of_robots.size(); i++)
+		{
+			outputFile<<number_of_robots[i]<<",";
+			for(int j = 0; j < number_of_algos; j++)
+			{
+				outputFile<<mean_of_idle_time[a][number_of_trials+1][(i*number_of_algos)+j]<<",";
+				cout<<mean_of_idle_time[a][number_of_trials+1][(i*number_of_algos)+j]<<" ";
+			}
+			outputFile<<endl;
+			cout<<endl;
+		}
+		outputFile.close();				
+		cout<<endl;
+
+		cout<<"percent_of_mean_idle_time: "<<endl;
+		save_address = path + "Mean/mean_percent_of_mean_idle_time.csv";
+		outputFile.open(save_address);
+		outputFile<<" "<<",";
+		outputFile<<"BSA-CM (Basic)"<<",";
+		outputFile<<"BSA-CM (Updated Backtracking)"<<",";
+		outputFile<<"Boustrophedon Motion (Updated Backtracking)"<<",";
+		outputFile<<"Boustrophedon Motion (BSA-CM like Backtracking)"<<",";
+		outputFile<<"BoB"<<",";
+		outputFile<<"MDFS"<<",";
+		outputFile<<"Brick and Mortar"<<",";
+		outputFile<<endl;
+		for(int i = 0; i < number_of_robots.size(); i++)
+		{
+			outputFile<<number_of_robots[i]<<",";
+			for(int j = 0; j < number_of_algos; j++)
+			{
+				outputFile<<percent_of_mean_idle_time[a][number_of_trials+1][(i*number_of_algos)+j]<<",";
+				cout<<percent_of_mean_idle_time[a][number_of_trials+1][(i*number_of_algos)+j]<<" ";
+			}
+			outputFile<<endl;
+			cout<<endl;
+		}
+		outputFile.close();				
+		cout<<endl;
+
+
+		cout<<"range_of_path_length: "<<endl;
+		save_address = path + "Mean/mean_range_of_path_length.csv";
+		outputFile.open(save_address);
+		outputFile<<" "<<",";
+		outputFile<<"BSA-CM (Basic)"<<",";
+		outputFile<<"BSA-CM (Updated Backtracking)"<<",";
+		outputFile<<"Boustrophedon Motion (Updated Backtracking)"<<",";
+		outputFile<<"Boustrophedon Motion (BSA-CM like Backtracking)"<<",";
+		outputFile<<"BoB"<<",";
+		outputFile<<"MDFS"<<",";
+		outputFile<<"Brick and Mortar"<<",";
+		outputFile<<endl;
+		for(int i = 0; i < number_of_robots.size(); i++)
+		{
+			outputFile<<number_of_robots[i]<<",";
+			for(int j = 0; j < number_of_algos; j++)
+			{
+				outputFile<<range_of_path_length[a][number_of_trials+1][(i*number_of_algos)+j]<<",";
+				cout<<range_of_path_length[a][number_of_trials+1][(i*number_of_algos)+j]<<" ";
+			}
+			outputFile<<endl;
+			cout<<endl;
+		}
+		outputFile.close();				
+		cout<<endl;
+
+		
+
+		cout<<"mean_robot_path_length: "<<endl;
+		save_address = path + "Mean/mean_mean_robot_path_length.csv";
+		outputFile.open(save_address);
+		outputFile<<" "<<",";
+		outputFile<<"BSA-CM (Basic)"<<",";
+		outputFile<<"BSA-CM (Updated Backtracking)"<<",";
+		outputFile<<"Boustrophedon Motion (Updated Backtracking)"<<",";
+		outputFile<<"Boustrophedon Motion (BSA-CM like Backtracking)"<<",";
+		outputFile<<"BoB"<<",";
+		outputFile<<"MDFS"<<",";
+		outputFile<<"Brick and Mortar"<<",";
+		outputFile<<endl;
+		for(int i = 0; i < number_of_robots.size(); i++)
+		{
+			outputFile<<number_of_robots[i]<<",";
+			for(int j = 0; j < number_of_algos; j++)
+			{
+				outputFile<<mean_robot_path_length[a][number_of_trials+1][(i*number_of_algos)+j]<<",";
+				cout<<mean_robot_path_length[a][number_of_trials+1][(i*number_of_algos)+j]<<" ";
+			}
+			outputFile<<endl;
+			cout<<endl;
+		}
+		outputFile.close();				
+		cout<<endl;
+
+
+		cout<<"******************************************************\n";
+		cout<<"Standard Deviation matrix: \n";
+
+		cout<<"iterations: "<<endl;
+		save_address= path + "SD/sd_iterations.csv";
+		outputFile.open(save_address);
+		outputFile<<" "<<",";
+		outputFile<<"BSA-CM (Basic)"<<",";
+		outputFile<<"BSA-CM (Updated Backtracking)"<<",";
+		outputFile<<"Boustrophedon Motion (Updated Backtracking)"<<",";
+		outputFile<<"Boustrophedon Motion (BSA-CM like Backtracking)"<<",";
+		outputFile<<"BoB"<<",";
+		outputFile<<"MDFS"<<",";
+		outputFile<<"Brick and Mortar"<<",";
+		outputFile<<endl;
+
+		for(int i = 0; i < number_of_robots.size(); i++)
+		{
+			outputFile<<number_of_robots[i]<<",";
+			for(int j = 0; j < number_of_algos; j++)
+			{
+				outputFile<<iterations[a][number_of_trials+2][(i*number_of_algos)+j]<<",";
+				cout<<iterations[a][number_of_trials+2][(i*number_of_algos)+j]<<" ";
+			}
+			outputFile<<endl;
+			cout<<endl;
+		}
+		outputFile.close();	
+		cout<<endl;
+
+		cout<<"Redundant Coverage: "<<endl;
+		save_address = path +"SD/sd_RedundantCoverage.csv";
+		outputFile.open(save_address);
+		outputFile<<" "<<",";
+		outputFile<<"BSA-CM (Basic)"<<",";
+		outputFile<<"BSA-CM (Updated Backtracking)"<<",";
+		outputFile<<"Boustrophedon Motion (Updated Backtracking)"<<",";
+		outputFile<<"Boustrophedon Motion (BSA-CM like Backtracking)"<<",";
+		outputFile<<"BoB"<<",";
+		outputFile<<"MDFS"<<",";
+		outputFile<<"Brick and Mortar"<<",";
+		outputFile<<endl;
+
+		for(int i = 0; i < number_of_robots.size(); i++)
+		{
+			outputFile<<number_of_robots[i]<<",";
+			for(int j = 0; j < number_of_algos; j++)
+			{
+				outputFile<<repetedsteps[a][number_of_trials+2][(i*number_of_algos)+j]<<",";
+				cout<<repetedsteps[a][number_of_trials+2][(i*number_of_algos)+j]<<" ";
+			}
+			outputFile<<endl;
+			cout<<endl;
+		}
+		outputFile.close();	
+		cout<<endl;
+
+		cout<<"total_path_length: "<<endl;
+		save_address = path +"SD/sd_total_path_length.csv";
+		outputFile.open(save_address);
+		outputFile<<" "<<",";
+		outputFile<<"BSA-CM (Basic)"<<",";
+		outputFile<<"BSA-CM (Updated Backtracking)"<<",";
+		outputFile<<"Boustrophedon Motion (Updated Backtracking)"<<",";
+		outputFile<<"Boustrophedon Motion (BSA-CM like Backtracking)"<<",";
+		outputFile<<"BoB"<<",";
+		outputFile<<"MDFS"<<",";
+		outputFile<<"Brick and Mortar"<<",";
+		outputFile<<endl;
+
+		for(int i = 0; i < number_of_robots.size(); i++)
+		{
+			outputFile<<number_of_robots[i]<<",";
+			for(int j = 0; j < number_of_algos; j++)
+			{
+				outputFile<<cummalative_path_length[a][number_of_trials+2][(i*number_of_algos)+j]<<",";
+				cout<<cummalative_path_length[a][number_of_trials+2][(i*number_of_algos)+j]<<" ";
+			}
+			outputFile<<endl;
+			cout<<endl;
+		}
+		outputFile.close();	
+		cout<<endl;
+
+		cout<<"Computation time: "<<endl;
+		save_address = path + "SD/sd_ComputationTime.csv";
+		outputFile.open(save_address);
+		outputFile<<" "<<",";
+		outputFile<<"BSA-CM (Basic)"<<",";
+		outputFile<<"BSA-CM (Updated Backtracking)"<<",";
+		outputFile<<"Boustrophedon Motion (Updated Backtracking)"<<",";
+		outputFile<<"Boustrophedon Motion (BSA-CM like Backtracking)"<<",";
+		outputFile<<"BoB"<<",";
+		outputFile<<"MDFS"<<",";
+		outputFile<<"Brick and Mortar"<<",";
+		outputFile<<endl;
+		for(int i = 0; i < number_of_robots.size(); i++)
+		{
+			outputFile<<number_of_robots[i]<<",";
+			for(int j = 0; j < number_of_algos; j++)
+			{
+				outputFile<<computationtime[a][number_of_trials+2][(i*number_of_algos)+j]<<",";
+				cout<<computationtime[a][number_of_trials+2][(i*number_of_algos)+j]<<" ";
+			}
+			outputFile<<endl;
+			cout<<endl;
+		}
+		outputFile.close();				
+		cout<<endl;
+		cout<<"final_termination_time: "<<endl;
+		save_address = path + "SD/sd_final_termination_time.csv";
+		outputFile.open(save_address);
+		outputFile<<" "<<",";
+		outputFile<<"BSA-CM (Basic)"<<",";
+		outputFile<<"BSA-CM (Updated Backtracking)"<<",";
+		outputFile<<"Boustrophedon Motion (Updated Backtracking)"<<",";
+		outputFile<<"Boustrophedon Motion (BSA-CM like Backtracking)"<<",";
+		outputFile<<"BoB"<<",";
+		outputFile<<"MDFS"<<",";
+		outputFile<<"Brick and Mortar"<<",";
+		outputFile<<endl;
+		for(int i = 0; i < number_of_robots.size(); i++)
+		{
+			outputFile<<number_of_robots[i]<<",";
+			for(int j = 0; j < number_of_algos; j++)
+			{
+				outputFile<<final_termination_time[a][number_of_trials+2][(i*number_of_algos)+j]<<",";
+				cout<<final_termination_time[a][number_of_trials+2][(i*number_of_algos)+j]<<" ";
+			}
+			outputFile<<endl;
+			cout<<endl;
+		}
+		outputFile.close();				
+		cout<<endl;
+		cout<<"mean_of_idle_time: "<<endl;
+		save_address = path + "SD/sd_mean_of_idle_time.csv";
+		outputFile.open(save_address);
+		outputFile<<" "<<",";
+		outputFile<<"BSA-CM (Basic)"<<",";
+		outputFile<<"BSA-CM (Updated Backtracking)"<<",";
+		outputFile<<"Boustrophedon Motion (Updated Backtracking)"<<",";
+		outputFile<<"Boustrophedon Motion (BSA-CM like Backtracking)"<<",";
+		outputFile<<"BoB"<<",";
+		outputFile<<"MDFS"<<",";
+		outputFile<<"Brick and Mortar"<<",";
+		outputFile<<endl;
+		for(int i = 0; i < number_of_robots.size(); i++)
+		{
+			outputFile<<number_of_robots[i]<<",";
+			for(int j = 0; j < number_of_algos; j++)
+			{
+				outputFile<<mean_of_idle_time[a][number_of_trials+2][(i*number_of_algos)+j]<<",";
+				cout<<mean_of_idle_time[a][number_of_trials+2][(i*number_of_algos)+j]<<" ";
+			}
+			outputFile<<endl;
+			cout<<endl;
+		}
+		outputFile.close();				
+		cout<<endl;
+
+		cout<<"percent_of_mean_idle_time: "<<endl;
+		save_address = path + "SD/sd_percent_of_mean_idle_time.csv";
+		outputFile.open(save_address);
+		outputFile<<" "<<",";
+		outputFile<<"BSA-CM (Basic)"<<",";
+		outputFile<<"BSA-CM (Updated Backtracking)"<<",";
+		outputFile<<"Boustrophedon Motion (Updated Backtracking)"<<",";
+		outputFile<<"Boustrophedon Motion (BSA-CM like Backtracking)"<<",";
+		outputFile<<"BoB"<<",";
+		outputFile<<"MDFS"<<",";
+		outputFile<<"Brick and Mortar"<<",";
+		outputFile<<endl;
+		for(int i = 0; i < number_of_robots.size(); i++)
+		{
+			outputFile<<number_of_robots[i]<<",";
+			for(int j = 0; j < number_of_algos; j++)
+			{
+				outputFile<<percent_of_mean_idle_time[a][number_of_trials+2][(i*number_of_algos)+j]<<",";
+				cout<<percent_of_mean_idle_time[a][number_of_trials+2][(i*number_of_algos)+j]<<" ";
+			}
+			outputFile<<endl;
+			cout<<endl;
+		}
+		outputFile.close();				
+		cout<<endl;
+
+
+		cout<<"range_of_path_length: "<<endl;
+		save_address = path + "SD/sd_range_of_path_length.csv";
+		outputFile.open(save_address);
+		outputFile<<" "<<",";
+		outputFile<<"BSA-CM (Basic)"<<",";
+		outputFile<<"BSA-CM (Updated Backtracking)"<<",";
+		outputFile<<"Boustrophedon Motion (Updated Backtracking)"<<",";
+		outputFile<<"Boustrophedon Motion (BSA-CM like Backtracking)"<<",";
+		outputFile<<"BoB"<<",";
+		outputFile<<"MDFS"<<",";
+		outputFile<<"Brick and Mortar"<<",";
+		outputFile<<endl;
+		for(int i = 0; i < number_of_robots.size(); i++)
+		{
+			outputFile<<number_of_robots[i]<<",";
+			for(int j = 0; j < number_of_algos; j++)
+			{
+				outputFile<<range_of_path_length[a][number_of_trials+2][(i*number_of_algos)+j]<<",";
+				cout<<range_of_path_length[a][number_of_trials+2][(i*number_of_algos)+j]<<" ";
+			}
+			outputFile<<endl;
+			cout<<endl;
+		}
+		outputFile.close();				
+		cout<<endl;
+
+		
+
+		cout<<"mean_robot_path_length: "<<endl;
+		save_address = path + "SD/sd_mean_robot_path_length.csv";
+		outputFile.open(save_address);
+		outputFile<<" "<<",";
+		outputFile<<"BSA-CM (Basic)"<<",";
+		outputFile<<"BSA-CM (Updated Backtracking)"<<",";
+		outputFile<<"Boustrophedon Motion (Updated Backtracking)"<<",";
+		outputFile<<"Boustrophedon Motion (BSA-CM like Backtracking)"<<",";
+		outputFile<<"BoB"<<",";
+		outputFile<<"MDFS"<<",";
+		outputFile<<"Brick and Mortar"<<",";
+		outputFile<<endl;
+		for(int i = 0; i < number_of_robots.size(); i++)
+		{
+			outputFile<<number_of_robots[i]<<",";
+			for(int j = 0; j < number_of_algos; j++)
+			{
+				outputFile<<mean_robot_path_length[a][number_of_trials+2][(i*number_of_algos)+j]<<",";
+				cout<<mean_robot_path_length[a][number_of_trials+2][(i*number_of_algos)+j]<<" ";
+			}
+			outputFile<<endl;
+			cout<<endl;
+		}
+		outputFile.close();				
+		cout<<endl;
+
+
+
 	}//for a
 							
 }
 
 int main(int argc, char* argv[]) {
   bool get_results = true;
-  get_results = false;
+  //get_results = false;
   if(get_results)
   {
-  	getSimulatioResults(3, 20, 7);
+  	getSimulatioResults(3, 25, 7);//number of maps, trials, algos
   	return 0;
   }
   AprilInterfaceAndVideoCapture testbed;  
@@ -802,8 +1623,7 @@ int main(int argc, char* argv[]) {
 
     vector <pair<double, int>> time_left_to_move(bots.size());
     double time_since_last_movement;
-    double current_time = tic();
-    
+    double current_time = tic();    
 	if(!first_iter)
 	{
 		for(int i = 0; i < bots.size(); i++)
@@ -1206,14 +2026,30 @@ int main(int argc, char* argv[]) {
   	cout<<"*******************\nSuccesful Termination!\n*******************\n";
   }
   cout<<"***********************\n***************\n";
+    	int min_length = 100000000;
+    	int max_length = 0;
     	for(int i = 0; i < bots.size(); i++)
     	{
+    		if(bots[i].plan.path_points.size()<min_length)
+    		{
+    			min_length = bots[i].plan.path_points.size();
+    		}
+    		if(bots[i].plan.path_points.size() > max_length)
+    		{
+    			max_length = bots[i].plan.path_points.size();
+    		}
+    		cout<<"1: "<<bots[i].plan.path_points.size()<<endl;
+    		cout<<"2: "<<max_length<<endl;
+    	
     		cout<<"id: "<<bots[i].plan.robot_tag_id<<endl;
     		cout<<"path points size(): "<<bots[i].plan.path_points.size()<<endl;
     		cout<<"index_travelled: "<<bots[i].plan.index_travelled<<endl;
     		cout<<"next_target_index: "<<bots[i].plan.next_target_index<<endl;
     		cout<<"current points: "<<bots[i].plan.path_points[bots[i].plan.index_travelled].x<<" "<<bots[i].plan.path_points[bots[i].plan.index_travelled].y<<endl;
     	}
+    	cout<<"max: "<<max_length<<endl;
+    	cout<<"min: "<<min_length<<endl;
+    	double path_length_range = max_length-min_length;
 
     cout<<"Number of times it moved: "<<move_count<<endl;
     cout<<"Number of times is waited: "<<wait_count<<endl;
@@ -1247,6 +2083,17 @@ int main(int argc, char* argv[]) {
 		}
 	}
 	double termination_time = max_time + time_to_compute;
+	double cumulative_idle_time = 0;
+	for(int i = 0; i < bots.size();i++)
+	{
+		cumulative_idle_time += (termination_time-bots[i].plan.path_completion_time);
+	}
+	double mean_idle_time;
+	cout<<"cumulative_idle_time: "<<cumulative_idle_time<<endl;
+	mean_idle_time = cumulative_idle_time/bots.size();
+	double mean_path_length = total_path_length/bots.size();
+
+	double percent_mean_idle_time = (mean_idle_time/termination_time)*100;
 
 	cout<<"***************************\n";
 	cout<<"Results: "<<endl;
@@ -1255,6 +2102,10 @@ int main(int argc, char* argv[]) {
 	cout<<"repeatedCoverage: "<<repeatedCoverage<<endl;
 	cout<<"Total Computation Time: "<<time_to_compute<<" sec."<<endl;	
 	cout<<"termination_time: "<<termination_time<<" sec."<<endl;
+	cout<<"Mean idle time: "<<mean_idle_time<<" sec."<<endl;
+	cout<<"Mean idle time as a percent of termination_time: "<<percent_mean_idle_time<<"%"<<endl;
+	cout<<"path_legth_range (Max - Min): "<<path_length_range/2<<" ft."<<endl;
+	cout<<"Mean path length: "<<mean_path_length/2<<" ft."<<endl;
 	cout<<"***************************\n";
 
 	if(succesful_termination!=1)
