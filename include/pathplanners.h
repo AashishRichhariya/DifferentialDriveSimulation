@@ -173,7 +173,7 @@ class PathPlannerGrid{
     bool checkBactrackValidityForBoB(pair <int, int> t);
     bool bactrackValidityForBSA_CM(pair <int, int> t, int nx, int ny, int j);
     bool bactrackValidityForBoB(pair <int, int> t, int nx, int ny, int j);
-    void BSACoverageWithUpdatedBactrackSelection(AprilInterfaceAndVideoCapture &testbed, robot_pose &ps, double reach_distance, vector<PathPlannerGrid> &bots);
+    void SSB(AprilInterfaceAndVideoCapture &testbed, robot_pose &ps, double reach_distance, vector<PathPlannerGrid> &bots);
     void initializeBactrackSearchMatrix();//to initialize the matrix which help in backtrack search, namely blockedcellcheck
     void BoustrophedonMotionWithUpdatedBactrackSelection(AprilInterfaceAndVideoCapture &testbed, robot_pose &ps, double reach_distance, vector<PathPlannerGrid> &bots);
     int backtrackSimulateBidForBoustrophedonMotion(pair<int,int> target,AprilInterfaceAndVideoCapture &testbed);

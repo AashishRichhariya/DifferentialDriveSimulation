@@ -1010,7 +1010,7 @@ void PathPlannerGrid::BSA_CMSearchForBTAmongstUEV(AprilInterfaceAndVideoCapture 
     addBacktrackPointToStackAndPath(sk,incumbent_cells,ic_no,bots[bot_index].uev_destinations[it].next_p.first,bots[bot_index].uev_destinations[it].next_p.second,bots[bot_index].uev_destinations[it].parent,testbed);
 }
 
-void PathPlannerGrid::BSACoverageWithUpdatedBactrackSelection(AprilInterfaceAndVideoCapture &testbed, robot_pose &ps, double reach_distance, vector<PathPlannerGrid> &bots){
+void PathPlannerGrid::SSB(AprilInterfaceAndVideoCapture &testbed, robot_pose &ps, double reach_distance, vector<PathPlannerGrid> &bots){
   if(setRobotCellCoordinates(testbed.detections)<0)//set the start_grid_y, start_grid_x
     return;
 
@@ -1322,7 +1322,7 @@ void PathPlannerGrid::BSACoverageWithUpdatedBactrackSelection(AprilInterfaceAndV
 
   int bot_index = 0;
   if(!valid_found && mind[min_j_index] == 10000000){//no bt point left
-    status = 2;
+    status = 1;
     cout<<"no bt point left for robot "<<robot_tag_id<<endl;
     BSA_CMSearchForBTAmongstUEV(testbed, bots, incumbent_cells, ic_no, sk);
     return;
@@ -1797,7 +1797,7 @@ void PathPlannerGrid::BoustrophedonMotionWithUpdatedBactrackSelection(AprilInter
 
   int bot_index = 0;
   if(!valid_found && mind[min_j_index] == 10000000){//no bt point left
-      status = 2;
+      status = 1;
       BoustrophedonMotionSearchForBTAmongstUEV(testbed, bots, incumbent_cells, ic_no, sk);
       return;
   }
@@ -2046,8 +2046,9 @@ void PathPlannerGrid::BoustrophedonMotionWithBSA_CMlikeBacktracking(AprilInterfa
 
   int bot_index = 0;
   if(!valid_found && mind[min_j_index] == 10000000){//no bt point left
-      status = 2;
+      status = 1;
       cout<<"no bt point left for robot, Searching Amongst UEVs! "<<robot_tag_id<<endl;
+      BoustrophedonMotionSearchForBTAmongstUEV(testbed, bots, incumbent_cells, ic_no, sk);
       return;
   }
   if(!valid_found && mind[min_j_index] != 10000000)//no point exists for which the given robot is the closest
@@ -3137,8 +3138,6 @@ void PathPlannerGrid::drawRobot(Mat &image){
     string s = to_string(robot_tag_id);
     putText(image, s, Point(ax,ay), FONT_HERSHEY_DUPLEX, 0.5, Scalar(255,255,255), 1);
   }
-  
-   
 }
 
 //for the class PathPlannerUser
@@ -3272,50 +3271,125 @@ void PathPlannerGrid::DeadlockReplan(AprilInterfaceAndVideoCapture &testbed, vec
     cout<<"*********\nelse\n**********\n";
     //status = 1;
     //coverage_completed = 0;
-    int current_end_y = pixel_path_points[total_points-1].first/cell_size_x;//don't change total points to next_target_index
-    int current_end_x = pixel_path_points[total_points-1].second/cell_size_y;
-    cout<<"end cells:  "<<current_end_x<<" "<<current_end_y<<endl;
-    vector<pair<int,int> > incumbent_cells(rcells*ccells);
-    int ic_no=0;
-    //pair <int, int> t = make_pair(start_grid_x, start_grid_y);
-    pair <int, int> t = make_pair(current_end_x, current_end_y);
-    empty_neighbor_found = false;
-    for(i = 0; i < 4; i++)
+    
+    if(next_target_index == path_points.size())
     {
-      ngr = current_end_x + aj[0][1][i].first;
-      ngc = current_end_y + aj[0][1][i].second;    
-      if(isEmpty(ngr,ngc) && world_grid[ngr][ngc].steps && world_grid[ngr][ngc].bot_presence.first!=1){//this mean the saio neighbouring cell is empty, has been visited and no bot is currently there
-        empty_neighbor_found = true;//found an empty cell to shift to.
-        break;
+      cout<<"HEREHERE\n";
+      cout<<"Was already at the last point!\n";
+      empty_neighbor_found = false;
+      int current_end_y = pixel_path_points[total_points-1].first/cell_size_x;//don't change total points to next_target_index
+      int current_end_x = pixel_path_points[total_points-1].second/cell_size_y;
+      cout<<"end cells:  "<<current_end_x<<" "<<current_end_y<<endl;
+      vector<pair<int,int> > incumbent_cells(rcells*ccells);
+      int ic_no=0;
+      //pair <int, int> t = make_pair(start_grid_x, start_grid_y);
+      pair <int, int> t = make_pair(current_end_x, current_end_y);
+      
+      for(i = 0; i < 4; i++)
+      {
+        ngr = current_end_x + aj[0][1][i].first;
+        ngc = current_end_y + aj[0][1][i].second;    
+        if(isEmpty(ngr,ngc) && world_grid[ngr][ngc].steps && world_grid[ngr][ngc].bot_presence.first!=1){//this mean the saio neighbouring cell is empty, has been visited and no bot is currently there
+          empty_neighbor_found = true;//found an empty cell to shift to.
+          break;
+        }
       }
-    }
-    cout<<"ngr, ngc: "<<ngr<<" "<<ngc<<endl;
-    if(empty_neighbor_found){       
-      addBacktrackPointToStackAndPath(sk,incumbent_cells,ic_no,ngr,ngc,t,testbed);
+      cout<<"ngr, ngc: "<<ngr<<" "<<ngc<<endl;
+      if(empty_neighbor_found){       
+        addBacktrackPointToStackAndPath(sk,incumbent_cells,ic_no,ngr,ngc,t,testbed);
+      }
+      else
+      {
+        cout<<"else of else!\n";
+        cout<<"current cells: "<<start_grid_x<<" "<<start_grid_y<<endl;
+        int var = 2;//don't change var to 1
+        int c1 = pixel_path_points[total_points-var].first/cell_size_x;//don't change total points to next_target_index
+        int r1 = pixel_path_points[total_points-var].second/cell_size_y;      
+        cout<<"r1, c1: "<<r1<<" "<<c1<<endl;
+        while(r1==current_end_x && c1==current_end_y)
+        {
+          cout<<"in while!\n";
+          if(var>next_target_index)break;
+          var++;
+          c1 = pixel_path_points[total_points-var].first/cell_size_x;
+          r1 = pixel_path_points[total_points-var].second/cell_size_y;
+          cout<<"r1, c1: "<<r1<<" "<<c1<<endl;
+        }
+        cout<<"@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n";
+        cout<<"var: "<<var<<endl;
+        //cv::waitKey(0);
+        addBacktrackPointToStackAndPath(sk,incumbent_cells,ic_no,r1,c1,t,testbed); 
+      }
     }
     else
     {
-      cout<<"else of else!\n";
-      cout<<"current cells: "<<start_grid_x<<" "<<start_grid_y<<endl;
-      int var = 2;//don't change var to 1
-      int c1 = pixel_path_points[total_points-var].first/cell_size_x;//don't change total points to next_target_index
-      int r1 = pixel_path_points[total_points-var].second/cell_size_y;      
-      cout<<"r1, c1: "<<r1<<" "<<c1<<endl;
-      while(r1==current_end_x && c1==current_end_y)
+      cout<<"HERE!\n";
+      cout<<"status 2 or coverage completed, but still lot places left to go to!\n";
+      empty_neighbor_found = false;
+      for(i = 0; i < 4; i++)
       {
-        cout<<"in while!\n";
-        if(var>next_target_index)break;
-        var++;
-        c1 = pixel_path_points[total_points-var].first/cell_size_x;
-        r1 = pixel_path_points[total_points-var].second/cell_size_y;
-        cout<<"r1, c1: "<<r1<<" "<<c1<<endl;
+        ngr = start_grid_x + aj[0][1][i].first;
+        ngc = start_grid_y + aj[0][1][i].second;    
+        if(isEmpty(ngr,ngc) && world_grid[ngr][ngc].steps && world_grid[ngr][ngc].bot_presence.first!=1){//this mean the saio neighbouring cell is empty, has been visited and no bot is currently there
+          empty_neighbor_found = true;//found an empty cell to shift to.
+          break;
+        }
       }
-      cout<<"@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n";
-      cout<<"var: "<<var<<endl;
-      //cv::waitKey(0);
-      addBacktrackPointToStackAndPath(sk,incumbent_cells,ic_no,r1,c1,t,testbed); 
-    }
-  }
+      total_points+=2;
+        if(total_points > path_points.size())
+        {
+          path_points.resize(total_points);
+          pixel_path_points.resize(total_points);
+        }
+
+        for(i = path_points.size()-1; i >= next_target_index; i--)
+        {
+          path_points[i].x = path_points[i-2].x;
+          path_points[i].y = path_points[i-2].y;
+          pixel_path_points[i].first = pixel_path_points[i-2].first;
+          pixel_path_points[i].second = pixel_path_points[i-2].second; 
+        }       
+        
+        if(empty_neighbor_found){       
+          int ax,ay;
+          double bx,by;
+          ax = world_grid[ngr][ngc].tot_x/world_grid[ngr][ngc].tot;
+          ay = world_grid[ngr][ngc].tot_y/world_grid[ngr][ngc].tot;
+          //testbed.pixelToWorld(ax,ay,bx,by);
+
+          path_points[next_target_index].x = ngr;//point at next target index updated
+          path_points[next_target_index].y = ngc;
+          pixel_path_points[next_target_index].first = ax;
+          pixel_path_points[next_target_index].second = ay; 
+        }
+        else
+        {
+          cout<<"start_grid_x, y: "<<start_grid_x<<" "<<start_grid_y<<endl;
+          cout<<"empty neighbour not found!\n";
+          int var = 2;
+          int c1 = pixel_path_points[next_target_index-var].first/cell_size_x;
+          int r1 = pixel_path_points[next_target_index-var].second/cell_size_y;
+          cout<<"r1, c1: "<<r1<<" "<<c1<<endl;
+          while(r1==start_grid_x && c1==start_grid_y)
+          {
+            cout<<"in while!\n";
+            if(var>next_target_index)break;
+            var++;
+            c1 = pixel_path_points[next_target_index-var].first/cell_size_x;
+            r1 = pixel_path_points[next_target_index-var].second/cell_size_y;
+            cout<<"r1, c1: "<<r1<<" "<<c1<<endl;
+          }
+          cout<<"var: "<<var<<endl;
+          cout<<"&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n";
+          //cv::waitKey(0);
+          path_points[next_target_index].x = path_points[next_target_index-var].x;
+          path_points[next_target_index].y = path_points[next_target_index-var].y;
+          pixel_path_points[next_target_index].first = pixel_path_points[next_target_index-var].first;
+          pixel_path_points[next_target_index].second = pixel_path_points[next_target_index-var].second;
+        }
+    } 
+  }//elsse 
+
   cout<<"robot id: "<<robot_tag_id<<endl;
   cout<<"After replan!\n**********\n";
   cout<<"paht point size: "<<path_points.size()<<endl;

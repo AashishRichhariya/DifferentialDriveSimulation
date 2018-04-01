@@ -45,6 +45,8 @@ int check_deadlock(vector<bot_config> &bots, int index)
     int r = bots[index].plan.target_grid_cell.first;
     int c = bots[index].plan.target_grid_cell.second;
     cout<<"r,c :"<<r<<" "<<c<<endl;
+    cout<<"next target index: "<<bots[index].plan.next_target_index<<endl;
+    cout<<"path size: "<<bots[index].plan.path_points.size()<<endl;
     if(bots[index].plan.world_grid[r][c].bot_presence.first == 1 && bots[index].plan.world_grid[r][c].bot_presence.second != bots[index].plan.robot_tag_id)
     {
       target_cell_bot_id = bots[index].plan.world_grid[r][c].bot_presence.second;
@@ -83,8 +85,9 @@ int check_deadlock(vector<bot_config> &bots, int index)
       	clear_flag = 1;
       	break;
       }
-      else if(bots[target_cell_bot_id].plan.status == 2 || bots[target_cell_bot_id].plan.coverage_completed==1)// to check if the said target bot has covered all its point and is in no position to move
+      else if(/*bots[target_cell_bot_id].plan.status == 2 || bots[target_cell_bot_id].plan.coverage_completed==1*/bots[target_cell_bot_id].plan.next_target_index==bots[target_cell_bot_id].plan.path_points.size())// to check if the said target bot has covered all its point and is in no position to move
       {
+      	cout<<"here!\n";
         break;
       }
      
@@ -172,7 +175,7 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 	vector <vector <vector <double>>> mean_robot_path_length (number_of_maps);
 
 
-	vector <int> number_of_robots = {1, 2, 4, 6, 8, 10, 12}; 
+	vector <int> number_of_robots = {/*1,*/ 2, 4, 6, 8/*, 10, 12*/}; 
 	for(int a = 0; a < number_of_maps; a++)
 	{
 		iterations[a].resize(number_of_trials+3);
@@ -188,10 +191,11 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 		string address;
 		switch(a)
 		{
-			case 0: address = "../Maps/Basic.png"; break;
+			case 2: address = "../Maps/Basic.png"; break;
 			case 1: address = "../Maps/Cluttered.png"; break;
-			case 2: address = "../Maps/Office.png"; break;
-		}			
+			case 0: address = "../Maps/Office.png"; break;
+		}	
+		cout<<"address: "<<address<<endl;		
 		
 		for(int b = 0; b < number_of_robots.size(); b++)			
 		{	
@@ -236,17 +240,20 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 
 					while(true){
 						cout<<"*************************\n\n";
+						cout<<"5th Run!\n";
+						cout<<"address: "<<address<<endl;	
 						cout<<"Map: "<<a+1<<"/"<<number_of_maps<<endl;
 						cout<<"Robots count: "<<(b+1)<<"/"<<number_of_robots.size()<<endl;
 						cout<<"trial count: "<<number_of_trials-trials+1<<"/"<<number_of_trials<<endl;
 						cout<<"Algo Count: "<<c+1<<"/"<<number_of_algos<<endl;
 						cout<<"*************************\n\n";
 						total_iterations[c]++;
-						if(total_iterations[c]>25000)
+						if(total_iterations[c]>18000)
 						{
 							problem_in_the_trial = 1;
 							break;
-						}						
+						}
+
 						image = imread(address);						
 						cvtColor(image, image_gray, CV_BGR2GRAY);
   						if(first_iter){
@@ -292,10 +299,11 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 					    double compute_start = tic();
 					    for(int i = 0;i<bots.size();i++){
 					      bots[i].plan.wait_to_plan = 0;
+					      cout<<i<<": ";
 					      switch(algo_select)
 					      {
 					      case 1: bots[i].plan.BSACoverageIncremental(testbed,bots[i].pose, 2.5,planners); break;
-					      case 2: bots[i].plan.BSACoverageWithUpdatedBactrackSelection(testbed,bots[i].pose, 2.5,planners); break;
+					      case 2: bots[i].plan.SSB(testbed,bots[i].pose, 2.5,planners); break;
 					      case 3: bots[i].plan.BoustrophedonMotionWithUpdatedBactrackSelection(testbed,bots[i].pose, 2.5,planners); break;
 					      case 4: bots[i].plan.BoustrophedonMotionWithBSA_CMlikeBacktracking(testbed,bots[i].pose, 2.5,planners); break;    
 					      case 5: bots[i].plan.BoB(testbed,bots[i].pose, 2.5,planners); break; 
@@ -308,6 +316,16 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 					    }
 					    double compute_end  = tic();
 					    time_to_compute[c] += (compute_end-compute_start);
+					    int path_sum = 0;
+						for(int i = 0; i < bots.size(); i++)
+						{
+							path_sum+= bots[i].plan.path_points.size();
+						}		
+						if(path_sum>5500)
+						{
+							problem_in_the_trial = 1;
+							break;
+						}	
 
 					    vector <pair<double, int>> time_left_to_move(bots.size());
 					    double time_since_last_movement;
@@ -420,7 +438,7 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 					        	if((time_since_last_movement >= bots[time_left_to_move[i].second].plan.wait_time) && !check_collision_possibility(testbed, planners, bots, wheel_velocities, time_left_to_move[i].second) /*&& bots[time_left_to_move[i].second].plan.iter_wait <=0!*/) {
 					        		       		
 					        		bots[time_left_to_move[i].second].plan.index_travelled++;
-					        		bots[time_left_to_move[i].second].plan.updateMovementinSimulation(testbed);
+					        		//bots[time_left_to_move[i].second].plan.updateMovementinSimulation(testbed);
 					       			planners[time_left_to_move[i].second] = bots[time_left_to_move[i].second].plan;
 					        		bots[time_left_to_move[i].second].plan.movement_made = 1;
 					        		bots[time_left_to_move[i].second].plan.time_spent_in_computation = 0;
@@ -442,7 +460,7 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 
 
 
-					   	/*
+					   	
 					   	bots[0].plan.drawGrid(image, planners);
 					   	for(int i = 0;i<bots.size();i++){      	
 					        bots[i].plan.drawPath(image);        
@@ -451,7 +469,7 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 					    {
 					    	bots[i].plan.drawRobot(image);
 					    }
-					    imshow(windowName,image);*/
+					    //imshow(windowName,image);
 						bool completed = 1;
 					    for(int i = 0; i < bots.size(); i++)
 					    {
@@ -471,7 +489,7 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 					    {
 					     	first_iter = 0;
 					    }
-					   /* if (cv::waitKey(1) == 27){
+					/*    if (cv::waitKey(1) == 27){
 					        break;//until escape is pressed
 					    }*/
 					}//while true
@@ -724,10 +742,14 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 		string save_address;
 		switch(a)
 		{
-			case 0: path = "../Results/Basic/"; break;
+			/*case 0: path = "../Results/Basic/"; break;
 			case 1: path = "../Results/Cluttered/"; break;
-			case 2: path = "../Results/Office/"; break;
+			case 2: path = "../Results/Office/"; break;*/
+			case 2: path = "/home/robot/Documents/Results_Collision/Results/Basic/"; break;
+			case 1: path = "/home/robot/Documents/Results_Collision/Results/Cluttered/"; break;
+			case 0: path = "/home/robot/Documents/Results_Collision/Results/Office/"; break;
 		}	
+		cout<<"path: "<<path<<endl;
 		cout<<"*************\n";
 		cout<<"Map #"<<a<<endl<<endl<<endl;
 		cout<<"*************\n";
@@ -1502,10 +1524,10 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 
 int main(int argc, char* argv[]) {
   bool get_results = true;
-  //get_results = false;
+  get_results = false;
   if(get_results)
   {
-  	getSimulatioResults(3, 25, 7);//number of maps, trials, algos
+  	getSimulatioResults(1, 20, 7);//number of maps, trials, algos
   	return 0;
   }
   AprilInterfaceAndVideoCapture testbed;  
@@ -1533,7 +1555,7 @@ int main(int argc, char* argv[]) {
   int algo_select;
   cout<<"\nSelect the Algorithm\n" 
   "1: BSA-CM (Basic)\n" 
-  "2: BSA-CM with updated Backtrack Search\n" 
+  "2: SSB\n" 
   "3: Boustrophedon Motion With Updated Bactrack Search\n"
   "4: Boustrophedon Motion With BSA_CM like Backtracking\n" 
   "5: BoB\n"
@@ -1564,7 +1586,7 @@ int main(int argc, char* argv[]) {
   int move_count = 0;
   while (true){    
   	total_iterations++;
-    image = imread("../Maps/Cluttered.png");
+    image = imread("../Maps/Office.png");
   	cvtColor(image, image_gray, CV_BGR2GRAY);
 
     if(first_iter){
@@ -1573,7 +1595,7 @@ int main(int argc, char* argv[]) {
         bots[i].plan.rcells = bots[0].plan.rcells;
         bots[i].plan.ccells = bots[0].plan.ccells;
       }
-     //srand(time(0));
+     srand(time(0));
       for(int i = 0; i < bots.size(); i++)
       {
       	int r = rand()%bots[0].plan.rcells;
@@ -1604,10 +1626,11 @@ int main(int argc, char* argv[]) {
     double compute_start = tic();
     for(int i = 0;i<bots.size();i++){
       bots[i].plan.wait_to_plan = 0;
+      cout<<i<<": ";
       switch(algo_select)
       {
       case 1: bots[i].plan.BSACoverageIncremental(testbed,bots[i].pose, 2.5,planners); break;
-      case 2: bots[i].plan.BSACoverageWithUpdatedBactrackSelection(testbed,bots[i].pose, 2.5,planners); break;
+      case 2: bots[i].plan.SSB(testbed,bots[i].pose, 2.5,planners); break;
       case 3: bots[i].plan.BoustrophedonMotionWithUpdatedBactrackSelection(testbed,bots[i].pose, 2.5,planners); break;
       case 4: bots[i].plan.BoustrophedonMotionWithBSA_CMlikeBacktracking(testbed,bots[i].pose, 2.5,planners); break;    
       case 5: bots[i].plan.BoB(testbed,bots[i].pose, 2.5,planners); break; 
@@ -1893,7 +1916,7 @@ int main(int argc, char* argv[]) {
         			case 2: cout<<"turn 180 degree\n";break;
         		}*/
         		bots[time_left_to_move[i].second].plan.index_travelled++;
-        		bots[time_left_to_move[i].second].plan.updateMovementinSimulation(testbed);
+        		//bots[time_left_to_move[i].second].plan.updateMovementinSimulation(testbed);
        			planners[time_left_to_move[i].second] = bots[time_left_to_move[i].second].plan;
         		bots[time_left_to_move[i].second].plan.movement_made = 1;
         		bots[time_left_to_move[i].second].plan.time_spent_in_computation = 0;
@@ -1941,11 +1964,14 @@ int main(int argc, char* argv[]) {
    	//cout<<"end - start "<<end_movement-start_movement<<endl;
 
    	//cv::waitKey(0);
+
     
     bots[0].plan.drawGrid(image, planners);
+   
    	for(int i = 0;i<bots.size();i++){      	
         bots[i].plan.drawPath(image);        
     }
+
     for(int i = 0; i < bots.size(); i++)
     {
     	bots[i].plan.drawRobot(image);
@@ -1972,7 +1998,7 @@ int main(int argc, char* argv[]) {
     	}
     }
 
-    if(bots_in_same_cell) cv::waitKey(0);
+    //if(bots_in_same_cell) cv::waitKey(0);
     bots_in_same_cell = 0;
     bool completed = 1;
     for(int i = 0; i < bots.size(); i++)
