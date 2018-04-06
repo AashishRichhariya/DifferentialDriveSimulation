@@ -191,9 +191,9 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 		string address;
 		switch(a)
 		{
-			case 2: address = "../Maps/Basic.png"; break;
+			case 0: address = "../Maps/Basic.png"; break;
 			case 1: address = "../Maps/Cluttered.png"; break;
-			case 0: address = "../Maps/Office.png"; break;
+			case 2: address = "../Maps/Office.png"; break;
 		}	
 		cout<<"address: "<<address<<endl;		
 		
@@ -303,16 +303,17 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 					      switch(algo_select)
 					      {
 					      case 1: bots[i].plan.BSACoverageIncremental(testbed,bots[i].pose, 2.5,planners); break;
-					      case 2: bots[i].plan.SSB(testbed,bots[i].pose, 2.5,planners); break;
-					      case 3: bots[i].plan.BoustrophedonMotionWithUpdatedBactrackSelection(testbed,bots[i].pose, 2.5,planners); break;
-					      case 4: bots[i].plan.BoustrophedonMotionWithBSA_CMlikeBacktracking(testbed,bots[i].pose, 2.5,planners); break;    
-					      case 5: bots[i].plan.BoB(testbed,bots[i].pose, 2.5,planners); break; 
-					      case 6: bots[i].plan.MDFS(testbed,bots[i].pose, 2.5,planners); break;
-					      case 7: bots[i].plan.BrickAndMortar(testbed,bots[i].pose, 2.5,planners); break; 
+					      case 2: bots[i].plan.SSB(testbed,bots[i].pose, 2.5,planners); break;				
+					      case 3: bots[i].plan.BoB(testbed,bots[i].pose, 2.5,planners); break; 
+					      case 4: bots[i].plan.MDFS(testbed,bots[i].pose, 2.5,planners); break;
+					      case 5: bots[i].plan.BrickAndMortar(testbed,bots[i].pose, 2.5,planners); break; 
+					      case 6: bots[i].plan.BoustrophedonMotionWithUpdatedBactrackSelection(testbed,bots[i].pose, 2.5,planners); break;
+					      case 7: bots[i].plan.BoustrophedonMotionWithBSA_CMlikeBacktracking(testbed,bots[i].pose, 2.5,planners); break;    
 					      case 8: bots[i].plan.S_MSTC(testbed,bots[i].pose, 2.5,planners); break;
 					      case 9: bots[i].plan.ANTS(testbed,bots[i].pose, 2.5,planners); break;    
 					      default: bots[i].plan.BSACoverageIncremental(testbed,bots[i].pose, 2.5,planners);   
-					      }   
+					      } 
+					      planners[i] = bots[i].plan;  
 					    }
 					    double compute_end  = tic();
 					    time_to_compute[c] += (compute_end-compute_start);
@@ -745,9 +746,9 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 			/*case 0: path = "../Results/Basic/"; break;
 			case 1: path = "../Results/Cluttered/"; break;
 			case 2: path = "../Results/Office/"; break;*/
-			case 2: path = "/home/robot/Documents/Results_Collision/Results/Basic/"; break;
+			case 0: path = "/home/robot/Documents/Results_Collision/Results/Basic/"; break;
 			case 1: path = "/home/robot/Documents/Results_Collision/Results/Cluttered/"; break;
-			case 0: path = "/home/robot/Documents/Results_Collision/Results/Office/"; break;
+			case 2: path = "/home/robot/Documents/Results_Collision/Results/Office/"; break;
 		}	
 		cout<<"path: "<<path<<endl;
 		cout<<"*************\n";
@@ -1040,13 +1041,12 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 		save_address= path + "Mean/mean_iterations.csv";
 		outputFile.open(save_address);
 		outputFile<<" "<<",";
-		outputFile<<"BSA-CM (Basic)"<<",";
-		outputFile<<"BSA-CM (Updated Backtracking)"<<",";
-		outputFile<<"Boustrophedon Motion (Updated Backtracking)"<<",";
-		outputFile<<"Boustrophedon Motion (BSA-CM like Backtracking)"<<",";
+		outputFile<<"BSA-CM"<<",";
+		outputFile<<"SSB"<<",";
 		outputFile<<"BoB"<<",";
 		outputFile<<"MDFS"<<",";
-		outputFile<<"Brick and Mortar"<<",";
+		outputFile<<"BnM"<<",";
+
 		outputFile<<endl;
 
 		for(int i = 0; i < number_of_robots.size(); i++)
@@ -1067,13 +1067,11 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 		save_address = path +"Mean/mean_RedundantCoverage.csv";
 		outputFile.open(save_address);
 		outputFile<<" "<<",";
-		outputFile<<"BSA-CM (Basic)"<<",";
-		outputFile<<"BSA-CM (Updated Backtracking)"<<",";
-		outputFile<<"Boustrophedon Motion (Updated Backtracking)"<<",";
-		outputFile<<"Boustrophedon Motion (BSA-CM like Backtracking)"<<",";
+		outputFile<<"BSA-CM"<<",";
+		outputFile<<"SSB"<<",";
 		outputFile<<"BoB"<<",";
 		outputFile<<"MDFS"<<",";
-		outputFile<<"Brick and Mortar"<<",";
+		outputFile<<"BnM"<<",";
 		outputFile<<endl;
 
 		for(int i = 0; i < number_of_robots.size(); i++)
@@ -1094,13 +1092,11 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 		save_address = path +"Mean/mean_total_path_length.csv";
 		outputFile.open(save_address);
 		outputFile<<" "<<",";
-		outputFile<<"BSA-CM (Basic)"<<",";
-		outputFile<<"BSA-CM (Updated Backtracking)"<<",";
-		outputFile<<"Boustrophedon Motion (Updated Backtracking)"<<",";
-		outputFile<<"Boustrophedon Motion (BSA-CM like Backtracking)"<<",";
+		outputFile<<"BSA-CM"<<",";
+		outputFile<<"SSB"<<",";
 		outputFile<<"BoB"<<",";
 		outputFile<<"MDFS"<<",";
-		outputFile<<"Brick and Mortar"<<",";
+		outputFile<<"BnM"<<",";
 		outputFile<<endl;
 
 		for(int i = 0; i < number_of_robots.size(); i++)
@@ -1121,13 +1117,11 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 		save_address = path + "Mean/mean_ComputationTime.csv";
 		outputFile.open(save_address);
 		outputFile<<" "<<",";
-		outputFile<<"BSA-CM (Basic)"<<",";
-		outputFile<<"BSA-CM (Updated Backtracking)"<<",";
-		outputFile<<"Boustrophedon Motion (Updated Backtracking)"<<",";
-		outputFile<<"Boustrophedon Motion (BSA-CM like Backtracking)"<<",";
+		outputFile<<"BSA-CM"<<",";
+		outputFile<<"SSB"<<",";
 		outputFile<<"BoB"<<",";
 		outputFile<<"MDFS"<<",";
-		outputFile<<"Brick and Mortar"<<",";
+		outputFile<<"BnM"<<",";
 		outputFile<<endl;
 		for(int i = 0; i < number_of_robots.size(); i++)
 		{
@@ -1146,13 +1140,11 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 		save_address = path + "Mean/mean_final_termination_time.csv";
 		outputFile.open(save_address);
 		outputFile<<" "<<",";
-		outputFile<<"BSA-CM (Basic)"<<",";
-		outputFile<<"BSA-CM (Updated Backtracking)"<<",";
-		outputFile<<"Boustrophedon Motion (Updated Backtracking)"<<",";
-		outputFile<<"Boustrophedon Motion (BSA-CM like Backtracking)"<<",";
+		outputFile<<"BSA-CM"<<",";
+		outputFile<<"SSB"<<",";
 		outputFile<<"BoB"<<",";
 		outputFile<<"MDFS"<<",";
-		outputFile<<"Brick and Mortar"<<",";
+		outputFile<<"BnM"<<",";
 		outputFile<<endl;
 		for(int i = 0; i < number_of_robots.size(); i++)
 		{
@@ -1171,13 +1163,11 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 		save_address = path + "Mean/mean_mean_of_idle_time.csv";
 		outputFile.open(save_address);
 		outputFile<<" "<<",";
-		outputFile<<"BSA-CM (Basic)"<<",";
-		outputFile<<"BSA-CM (Updated Backtracking)"<<",";
-		outputFile<<"Boustrophedon Motion (Updated Backtracking)"<<",";
-		outputFile<<"Boustrophedon Motion (BSA-CM like Backtracking)"<<",";
+		outputFile<<"BSA-CM"<<",";
+		outputFile<<"SSB"<<",";
 		outputFile<<"BoB"<<",";
 		outputFile<<"MDFS"<<",";
-		outputFile<<"Brick and Mortar"<<",";
+		outputFile<<"BnM"<<",";
 		outputFile<<endl;
 		for(int i = 0; i < number_of_robots.size(); i++)
 		{
@@ -1197,13 +1187,11 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 		save_address = path + "Mean/mean_percent_of_mean_idle_time.csv";
 		outputFile.open(save_address);
 		outputFile<<" "<<",";
-		outputFile<<"BSA-CM (Basic)"<<",";
-		outputFile<<"BSA-CM (Updated Backtracking)"<<",";
-		outputFile<<"Boustrophedon Motion (Updated Backtracking)"<<",";
-		outputFile<<"Boustrophedon Motion (BSA-CM like Backtracking)"<<",";
+		outputFile<<"BSA-CM"<<",";
+		outputFile<<"SSB"<<",";
 		outputFile<<"BoB"<<",";
 		outputFile<<"MDFS"<<",";
-		outputFile<<"Brick and Mortar"<<",";
+		outputFile<<"BnM"<<",";
 		outputFile<<endl;
 		for(int i = 0; i < number_of_robots.size(); i++)
 		{
@@ -1224,13 +1212,11 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 		save_address = path + "Mean/mean_range_of_path_length.csv";
 		outputFile.open(save_address);
 		outputFile<<" "<<",";
-		outputFile<<"BSA-CM (Basic)"<<",";
-		outputFile<<"BSA-CM (Updated Backtracking)"<<",";
-		outputFile<<"Boustrophedon Motion (Updated Backtracking)"<<",";
-		outputFile<<"Boustrophedon Motion (BSA-CM like Backtracking)"<<",";
+		outputFile<<"BSA-CM"<<",";
+		outputFile<<"SSB"<<",";
 		outputFile<<"BoB"<<",";
 		outputFile<<"MDFS"<<",";
-		outputFile<<"Brick and Mortar"<<",";
+		outputFile<<"BnM"<<",";
 		outputFile<<endl;
 		for(int i = 0; i < number_of_robots.size(); i++)
 		{
@@ -1252,13 +1238,11 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 		save_address = path + "Mean/mean_mean_robot_path_length.csv";
 		outputFile.open(save_address);
 		outputFile<<" "<<",";
-		outputFile<<"BSA-CM (Basic)"<<",";
-		outputFile<<"BSA-CM (Updated Backtracking)"<<",";
-		outputFile<<"Boustrophedon Motion (Updated Backtracking)"<<",";
-		outputFile<<"Boustrophedon Motion (BSA-CM like Backtracking)"<<",";
+		outputFile<<"BSA-CM"<<",";
+		outputFile<<"SSB"<<",";
 		outputFile<<"BoB"<<",";
 		outputFile<<"MDFS"<<",";
-		outputFile<<"Brick and Mortar"<<",";
+		outputFile<<"BnM"<<",";
 		outputFile<<endl;
 		for(int i = 0; i < number_of_robots.size(); i++)
 		{
@@ -1282,13 +1266,11 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 		save_address= path + "SD/sd_iterations.csv";
 		outputFile.open(save_address);
 		outputFile<<" "<<",";
-		outputFile<<"BSA-CM (Basic)"<<",";
-		outputFile<<"BSA-CM (Updated Backtracking)"<<",";
-		outputFile<<"Boustrophedon Motion (Updated Backtracking)"<<",";
-		outputFile<<"Boustrophedon Motion (BSA-CM like Backtracking)"<<",";
+		outputFile<<"BSA-CM"<<",";
+		outputFile<<"SSB"<<",";
 		outputFile<<"BoB"<<",";
 		outputFile<<"MDFS"<<",";
-		outputFile<<"Brick and Mortar"<<",";
+		outputFile<<"BnM"<<",";
 		outputFile<<endl;
 
 		for(int i = 0; i < number_of_robots.size(); i++)
@@ -1309,13 +1291,11 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 		save_address = path +"SD/sd_RedundantCoverage.csv";
 		outputFile.open(save_address);
 		outputFile<<" "<<",";
-		outputFile<<"BSA-CM (Basic)"<<",";
-		outputFile<<"BSA-CM (Updated Backtracking)"<<",";
-		outputFile<<"Boustrophedon Motion (Updated Backtracking)"<<",";
-		outputFile<<"Boustrophedon Motion (BSA-CM like Backtracking)"<<",";
+		outputFile<<"BSA-CM"<<",";
+		outputFile<<"SSB"<<",";
 		outputFile<<"BoB"<<",";
 		outputFile<<"MDFS"<<",";
-		outputFile<<"Brick and Mortar"<<",";
+		outputFile<<"BnM"<<",";
 		outputFile<<endl;
 
 		for(int i = 0; i < number_of_robots.size(); i++)
@@ -1336,13 +1316,11 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 		save_address = path +"SD/sd_total_path_length.csv";
 		outputFile.open(save_address);
 		outputFile<<" "<<",";
-		outputFile<<"BSA-CM (Basic)"<<",";
-		outputFile<<"BSA-CM (Updated Backtracking)"<<",";
-		outputFile<<"Boustrophedon Motion (Updated Backtracking)"<<",";
-		outputFile<<"Boustrophedon Motion (BSA-CM like Backtracking)"<<",";
+		outputFile<<"BSA-CM"<<",";
+		outputFile<<"SSB"<<",";
 		outputFile<<"BoB"<<",";
 		outputFile<<"MDFS"<<",";
-		outputFile<<"Brick and Mortar"<<",";
+		outputFile<<"BnM"<<",";
 		outputFile<<endl;
 
 		for(int i = 0; i < number_of_robots.size(); i++)
@@ -1363,13 +1341,11 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 		save_address = path + "SD/sd_ComputationTime.csv";
 		outputFile.open(save_address);
 		outputFile<<" "<<",";
-		outputFile<<"BSA-CM (Basic)"<<",";
-		outputFile<<"BSA-CM (Updated Backtracking)"<<",";
-		outputFile<<"Boustrophedon Motion (Updated Backtracking)"<<",";
-		outputFile<<"Boustrophedon Motion (BSA-CM like Backtracking)"<<",";
+		outputFile<<"BSA-CM"<<",";
+		outputFile<<"SSB"<<",";
 		outputFile<<"BoB"<<",";
 		outputFile<<"MDFS"<<",";
-		outputFile<<"Brick and Mortar"<<",";
+		outputFile<<"BnM"<<",";
 		outputFile<<endl;
 		for(int i = 0; i < number_of_robots.size(); i++)
 		{
@@ -1388,13 +1364,11 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 		save_address = path + "SD/sd_final_termination_time.csv";
 		outputFile.open(save_address);
 		outputFile<<" "<<",";
-		outputFile<<"BSA-CM (Basic)"<<",";
-		outputFile<<"BSA-CM (Updated Backtracking)"<<",";
-		outputFile<<"Boustrophedon Motion (Updated Backtracking)"<<",";
-		outputFile<<"Boustrophedon Motion (BSA-CM like Backtracking)"<<",";
+		outputFile<<"BSA-CM"<<",";
+		outputFile<<"SSB"<<",";
 		outputFile<<"BoB"<<",";
 		outputFile<<"MDFS"<<",";
-		outputFile<<"Brick and Mortar"<<",";
+		outputFile<<"BnM"<<",";
 		outputFile<<endl;
 		for(int i = 0; i < number_of_robots.size(); i++)
 		{
@@ -1413,13 +1387,11 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 		save_address = path + "SD/sd_mean_of_idle_time.csv";
 		outputFile.open(save_address);
 		outputFile<<" "<<",";
-		outputFile<<"BSA-CM (Basic)"<<",";
-		outputFile<<"BSA-CM (Updated Backtracking)"<<",";
-		outputFile<<"Boustrophedon Motion (Updated Backtracking)"<<",";
-		outputFile<<"Boustrophedon Motion (BSA-CM like Backtracking)"<<",";
+		outputFile<<"BSA-CM"<<",";
+		outputFile<<"SSB"<<",";
 		outputFile<<"BoB"<<",";
 		outputFile<<"MDFS"<<",";
-		outputFile<<"Brick and Mortar"<<",";
+		outputFile<<"BnM"<<",";
 		outputFile<<endl;
 		for(int i = 0; i < number_of_robots.size(); i++)
 		{
@@ -1439,13 +1411,11 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 		save_address = path + "SD/sd_percent_of_mean_idle_time.csv";
 		outputFile.open(save_address);
 		outputFile<<" "<<",";
-		outputFile<<"BSA-CM (Basic)"<<",";
-		outputFile<<"BSA-CM (Updated Backtracking)"<<",";
-		outputFile<<"Boustrophedon Motion (Updated Backtracking)"<<",";
-		outputFile<<"Boustrophedon Motion (BSA-CM like Backtracking)"<<",";
+		outputFile<<"BSA-CM"<<",";
+		outputFile<<"SSB"<<",";
 		outputFile<<"BoB"<<",";
 		outputFile<<"MDFS"<<",";
-		outputFile<<"Brick and Mortar"<<",";
+		outputFile<<"BnM"<<",";
 		outputFile<<endl;
 		for(int i = 0; i < number_of_robots.size(); i++)
 		{
@@ -1466,13 +1436,11 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 		save_address = path + "SD/sd_range_of_path_length.csv";
 		outputFile.open(save_address);
 		outputFile<<" "<<",";
-		outputFile<<"BSA-CM (Basic)"<<",";
-		outputFile<<"BSA-CM (Updated Backtracking)"<<",";
-		outputFile<<"Boustrophedon Motion (Updated Backtracking)"<<",";
-		outputFile<<"Boustrophedon Motion (BSA-CM like Backtracking)"<<",";
+		outputFile<<"BSA-CM"<<",";
+		outputFile<<"SSB"<<",";
 		outputFile<<"BoB"<<",";
 		outputFile<<"MDFS"<<",";
-		outputFile<<"Brick and Mortar"<<",";
+		outputFile<<"BnM"<<",";
 		outputFile<<endl;
 		for(int i = 0; i < number_of_robots.size(); i++)
 		{
@@ -1494,13 +1462,11 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 		save_address = path + "SD/sd_mean_robot_path_length.csv";
 		outputFile.open(save_address);
 		outputFile<<" "<<",";
-		outputFile<<"BSA-CM (Basic)"<<",";
-		outputFile<<"BSA-CM (Updated Backtracking)"<<",";
-		outputFile<<"Boustrophedon Motion (Updated Backtracking)"<<",";
-		outputFile<<"Boustrophedon Motion (BSA-CM like Backtracking)"<<",";
+		outputFile<<"BSA-CM"<<",";
+		outputFile<<"SSB"<<",";
 		outputFile<<"BoB"<<",";
 		outputFile<<"MDFS"<<",";
-		outputFile<<"Brick and Mortar"<<",";
+		outputFile<<"BnM"<<",";
 		outputFile<<endl;
 		for(int i = 0; i < number_of_robots.size(); i++)
 		{
@@ -1555,12 +1521,12 @@ int main(int argc, char* argv[]) {
   int algo_select;
   cout<<"\nSelect the Algorithm\n" 
   "1: BSA-CM (Basic)\n" 
-  "2: SSB\n" 
-  "3: Boustrophedon Motion With Updated Bactrack Search\n"
-  "4: Boustrophedon Motion With BSA_CM like Backtracking\n" 
-  "5: BoB\n"
-  "6: MDFS\n"
-  "7: Brick And Mortar\n"
+  "2: SSB\n"   
+  "3: BoB\n"
+  "4: MDFS\n"
+  "5: Brick And Mortar\n"
+  "6: Boustrophedon Motion With Updated Bactrack Search\n"
+  "7: Boustrophedon Motion With BSA_CM like Backtracking\n" 
   "8: S-MSTC\n"
   "9: ANTS\n"
   "\nEnter here: ";
@@ -1586,7 +1552,7 @@ int main(int argc, char* argv[]) {
   int move_count = 0;
   while (true){    
   	total_iterations++;
-    image = imread("../Maps/Office.png");
+    image = imread("../Maps/Basic.png");
   	cvtColor(image, image_gray, CV_BGR2GRAY);
 
     if(first_iter){
@@ -1595,7 +1561,7 @@ int main(int argc, char* argv[]) {
         bots[i].plan.rcells = bots[0].plan.rcells;
         bots[i].plan.ccells = bots[0].plan.ccells;
       }
-     srand(time(0));
+     //srand(time(0));
       for(int i = 0; i < bots.size(); i++)
       {
       	int r = rand()%bots[0].plan.rcells;
@@ -1630,16 +1596,17 @@ int main(int argc, char* argv[]) {
       switch(algo_select)
       {
       case 1: bots[i].plan.BSACoverageIncremental(testbed,bots[i].pose, 2.5,planners); break;
-      case 2: bots[i].plan.SSB(testbed,bots[i].pose, 2.5,planners); break;
-      case 3: bots[i].plan.BoustrophedonMotionWithUpdatedBactrackSelection(testbed,bots[i].pose, 2.5,planners); break;
-      case 4: bots[i].plan.BoustrophedonMotionWithBSA_CMlikeBacktracking(testbed,bots[i].pose, 2.5,planners); break;    
-      case 5: bots[i].plan.BoB(testbed,bots[i].pose, 2.5,planners); break; 
-      case 6: bots[i].plan.MDFS(testbed,bots[i].pose, 2.5,planners); break;
-      case 7: bots[i].plan.BrickAndMortar(testbed,bots[i].pose, 2.5,planners); break; 
+      case 2: bots[i].plan.SSB(testbed,bots[i].pose, 2.5,planners); break;      
+      case 3: bots[i].plan.BoB(testbed,bots[i].pose, 2.5,planners); break; 
+      case 4: bots[i].plan.MDFS(testbed,bots[i].pose, 2.5,planners); break;
+      case 5: bots[i].plan.BrickAndMortar(testbed,bots[i].pose, 2.5,planners); break; 
+      case 6: bots[i].plan.BoustrophedonMotionWithUpdatedBactrackSelection(testbed,bots[i].pose, 2.5,planners); break;
+      case 7: bots[i].plan.BoustrophedonMotionWithBSA_CMlikeBacktracking(testbed,bots[i].pose, 2.5,planners); break;    
       case 8: bots[i].plan.S_MSTC(testbed,bots[i].pose, 2.5,planners); break;
       case 9: bots[i].plan.ANTS(testbed,bots[i].pose, 2.5,planners); break;     
       default: bots[i].plan.BSACoverageIncremental(testbed,bots[i].pose, 2.5,planners);   
-      }   
+      }
+      planners[i] = bots[i].plan;   
     }
     double compute_end  = tic();
     time_to_compute += (compute_end-compute_start);

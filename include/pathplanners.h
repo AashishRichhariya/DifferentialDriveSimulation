@@ -208,6 +208,13 @@ class PathPlannerGrid{
     bool checkConnectivity(pair <int, int> start, pair <int, int> end);//required to checking blockage in Brick and Mortar;
 
     void updateMovementinSimulation(AprilInterfaceAndVideoCapture &testbed);
+
+    pair <int, int> bidForBT(AprilInterfaceAndVideoCapture &testbed, pair <int, int> current_cell, vector<PathPlannerGrid> &bots);
+
+    pair <int, int> bidForUEV(AprilInterfaceAndVideoCapture &testbed, pair <int, int> current_cell, vector<PathPlannerGrid> &bots);
+
+    pair <int, int> nearestBT(AprilInterfaceAndVideoCapture &testbed, pair <int, int> current_cell, vector<PathPlannerGrid> &bots);
+   
    
     
 };
