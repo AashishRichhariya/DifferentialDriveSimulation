@@ -75,10 +75,50 @@ void PathPlannerGrid::initializeBactrackSearchMatrix(){
 //all planners with same map must have same grid cell size in pixels
 //you should not call initialize, overlay, inversion grid on a shared map, or call if you 
 //know what you are doing
-void PathPlannerGrid::shareMap(const PathPlannerGrid &planner){
-    rcells = planner.rcells;
-    ccells = planner.ccells;
-    world_grid = planner.world_grid;
+void PathPlannerGrid::shareMap(AprilInterfaceAndVideoCapture &testbed, vector<PathPlannerGrid> &bots){
+  if(setRobotCellCoordinates(testbed.detections)<0)//set the start_grid_y, start_grid_x
+    return;
+  //double px = world_grid[start_grid_x][start_grid_y].tot_x/world_grid[start_grid_x][start_grid_y].tot;
+  //double py = world_grid[start_grid_x][start_grid_y].tot_y/world_grid[start_grid_x][start_grid_y].tot;
+  double px = start_grid_x;
+  double py = start_grid_y;
+  double ax, ay;
+  testbed.pixelToWorld(px, py, ax, ay);
+  for(int i = 0; i < bots.size(); i++)
+  {
+    if(i==robot_tag_id)continue;
+    bots[i].setRobotCellCoordinates(testbed.detections);
+    //px = world_grid[bots[i].start_grid_x][bots[i].start_grid_y].tot_x/world_grid[bots[i].start_grid_x][bots[i].start_grid_y].tot;
+    //py = world_grid[bots[i].start_grid_x][bots[i].start_grid_y].tot_y/world_grid[bots[i].start_grid_x][bots[i].start_grid_y].tot;
+    px = bots[i].start_grid_x;
+    py = bots[i].start_grid_y;
+    double bx, by;
+    testbed.pixelToWorld(px, py, bx, by);
+    if(distance(ax, ay, bx, by)>=comm_dist) continue;
+    for(int r = 0; r < rcells; r++)
+    {
+      for(int c = 0; c < ccells; c++)
+      {
+
+        if(bots[i].world_grid[r][c].steps)
+        {
+          world_grid[r][c].steps = 1;
+        }
+        if(bots[i].world_grid[r][c].isBT)
+        {
+          world_grid[r][c].isBT = 1;
+        }
+        if(bots[i].world_grid[r][c].isUEV)
+        {
+          world_grid[r][c].isUEV = 1;
+        }
+        if(bots[i].world_grid[r][c].visited)
+        {
+          world_grid[r][c].visited = 1;
+        }    
+      }
+    }
+  }
 }
 void PathPlannerGrid::gridInversion(const PathPlannerGrid &planner,int rid){//invert visitable and non visitable cells for the given rid
   rcells = planner.rcells;
@@ -98,6 +138,9 @@ void PathPlannerGrid::gridInversion(const PathPlannerGrid &planner,int rid){//in
         }
         else
           world_grid[i][j].steps = 1;
+          world_grid[i][j].tot_x = planner.world_grid[i][j].tot_x;
+          world_grid[i][j].tot_y = planner.world_grid[i][j].tot_y;
+          world_grid[i][j].tot = planner.world_grid[i][j].tot;
       }
       else //in case it's a vornoi partition based implementation
       {
@@ -109,6 +152,9 @@ void PathPlannerGrid::gridInversion(const PathPlannerGrid &planner,int rid){//in
         }
         else
           world_grid[i][j].steps = 1;
+          world_grid[i][j].tot_x = planner.world_grid[i][j].tot_x;
+          world_grid[i][j].tot_y = planner.world_grid[i][j].tot_y;
+          world_grid[i][j].tot = planner.world_grid[i][j].tot;
       }
     }
 }
@@ -467,8 +513,7 @@ int PathPlannerGrid::backtrackSimulateBid(pair<int,int> target,AprilInterfaceAnd
   //return 10000000;//the robot can't return to given target
 }
 
-void PathPlannerGrid::updateMovementinSimulation(AprilInterfaceAndVideoCapture &testbed)
-{
+void PathPlannerGrid::updateMovementinSimulation(AprilInterfaceAndVideoCapture &testbed){
    if(setRobotCellCoordinates(testbed.detections)<0)//set the start_grid_y, start_grid_x
     return;
     world_grid[start_grid_x][start_grid_y].bot_presence = make_pair(1, robot_tag_id); //assigning bot presence bit to current cell, //this would come to use in collision avoidance algorithm
@@ -603,7 +648,6 @@ pair <int, int> PathPlannerGrid::nearestBT(AprilInterfaceAndVideoCapture &testbe
     return make_pair(-1, -1);   
 }
 
-
 pair <int, int> PathPlannerGrid::bidForUEV(AprilInterfaceAndVideoCapture &testbed, pair <int, int> current_cell, vector<PathPlannerGrid> &bots){
     queue<pair<int,int> > q;    
     vector<pair<int,int> > aj = {{-1,0},{0,1},{1,0},{0,-1}};
@@ -689,6 +733,7 @@ void PathPlannerGrid::BSACoverageIncremental(AprilInterfaceAndVideoCapture &test
     return;
 
   if(!first_call){
+    shareMap(testbed, bots);
     //cout<<"in second and subsequent calls"<<endl;
     for(int i = 0; i < bt_destinations.size(); i++)
     {
@@ -1052,8 +1097,7 @@ void PathPlannerGrid::BSACoverageIncremental(AprilInterfaceAndVideoCapture &test
   // addBacktrackPointToStackAndPath(sk,incumbent_cells,ic_no,bots[bot_index].bt_destinations[it].next_p.first,bots[bot_index].bt_destinations[it].next_p.second,bots[bot_index].bt_destinations[it].parent,testbed);
 }//end of BSA incremental fucntion
 
-int PathPlannerGrid::checkBactrackCondition(pair<int, int> p1, pair <int, int> p2)
-{
+int PathPlannerGrid::checkBactrackCondition(pair<int, int> p1, pair <int, int> p2){
   if(!isBlocked(p1.first, p1.second) && isBlocked(p2.first, p2.second) )
   {
     return 1;    
@@ -1061,8 +1105,7 @@ int PathPlannerGrid::checkBactrackCondition(pair<int, int> p1, pair <int, int> p
   else return 0;
 }
 
-bool PathPlannerGrid::checkBactrackValidityForBoB(pair <int, int> t)
-{
+bool PathPlannerGrid::checkBactrackValidityForBoB(pair <int, int> t){
   int sum = 0;
   vector <pair<int, int>> v(9);
   v[1].first = t.first + 0;//Right
@@ -1260,6 +1303,8 @@ void PathPlannerGrid::SSB(AprilInterfaceAndVideoCapture &testbed, robot_pose &ps
     return;
 
   if(!first_call){
+
+    shareMap(testbed, bots);
 
     for(int i = 0; i< bt_destinations.size();i++){
       if(!bt_destinations[i].valid || world_grid[bt_destinations[i].next_p.first][bt_destinations[i].next_p.second].steps>0 /*|| !checkBactrackValidityForBSA_CM(backtrack_parent)*/){//the bt is no longer uncovered or backtack conditions no longer remain
@@ -2370,6 +2415,7 @@ void PathPlannerGrid::BoB(AprilInterfaceAndVideoCapture &testbed, robot_pose &ps
   if(setRobotCellCoordinates(testbed.detections)<0)//set the start_grid_y, start_grid_x
   return;
     if(!first_call){
+      shareMap(testbed, bots);
       for(int i = 0; i< bt_destinations.size();i++){
         pair<int, int> backtrack_parent;
         if(!bt_destinations[i].valid || world_grid[bt_destinations[i].next_p.first][bt_destinations[i].next_p.second].steps>0 /*|| !checkBactrackValidityForBSA_CM(backtrack_parent)*/){//the bt is no longer uncovered or backtack conditions no longer remain
@@ -2634,6 +2680,7 @@ void PathPlannerGrid::MDFS(AprilInterfaceAndVideoCapture &testbed, robot_pose &p
   if(setRobotCellCoordinates(testbed.detections)<0)//set the start_grid_y, start_grid_x
     return;
   if(!first_call){
+    shareMap(testbed, bots);
     if(!sk.empty()){
         pair<int,int> t = sk.top();
         world_grid[start_grid_x][start_grid_y].bot_presence = make_pair(1, robot_tag_id); //assigning bot presence bit to current cell, //this would come to use in collision avoidance algorithm
@@ -2981,6 +3028,7 @@ void PathPlannerGrid::BrickAndMortar(AprilInterfaceAndVideoCapture &testbed, rob
   if(setRobotCellCoordinates(testbed.detections)<0)//set the start_grid_y, start_grid_x
     return;
   if(!first_call){
+    shareMap(testbed, bots);
     if(!sk.empty()){       
         pair<int,int> t = sk.top();
         world_grid[start_grid_x][start_grid_y].bot_presence = make_pair(1, robot_tag_id); //assigning bot presence bit to current cell, //this would come to use in collision avoidance algorithm

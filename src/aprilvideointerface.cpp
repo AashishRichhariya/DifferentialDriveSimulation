@@ -245,17 +245,19 @@ void AprilInterfaceAndVideoCapture::setupVideo(){
 }
 
 void AprilInterfaceAndVideoCapture::pixelToWorld(double x,double y,double &xd,double &yd){
-  x = x-m_px;
-  y = y-m_py;
-  Eigen::Vector3d tp(x/m_fx,y/m_fy,1);
-  Eigen::Vector3d normal = x_axis.cross(y_axis);
-  double d = normal.dot(planeOrigin);
-  double tpd = normal.dot(tp);
-  double zdash = d/tpd;
-  tp = zdash*tp;
-  tp = tp-planeOrigin;
-  xd = tp.dot(x_axis);
-  yd = tp.dot(y_axis);
+  // x = x-m_px;
+  // y = y-m_py;
+  // Eigen::Vector3d tp(x/m_fx,y/m_fy,1);
+  // Eigen::Vector3d normal = x_axis.cross(y_axis);
+  // double d = normal.dot(planeOrigin);
+  // double tpd = normal.dot(tp);
+  // double zdash = d/tpd;
+  // tp = zdash*tp;
+  // tp = tp-planeOrigin;
+  // xd = tp.dot(x_axis);
+  // yd = tp.dot(y_axis);
+  xd = (x/2) + (1/4);
+  yd = (y/2) + (1/4);//feets
 }
 
 //find the normal vector to the plane formed by the endpoints of tag

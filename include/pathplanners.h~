@@ -28,6 +28,7 @@ class PathPlannerGrid{
     //when sharing a map, make sure to share the below two values explicitly in your code, as sharing only the reference to map is not enough
     int rcells, ccells;
     std::vector<std::vector<nd> > &world_grid;//grid size is assumed to be manueveurable by the robot
+   //std::vector<std::vector<nd> > world_grid;//not needed as a reference variable in case of imposing communication range constraints
     //the following matrix is used to encode local preference based on current place and parent place, one is added to avoid negative array index
     std::pair<int,int> aj[3][3][4];
     stack<pair<int,int> > sk;//stack is needed to remember all the previous points visited and backtrack, should be unique for every instance, used primarily by the incremental bsa
@@ -89,11 +90,13 @@ class PathPlannerGrid{
    bool wait_to_plan;
 
    double path_completion_time; //used to compute completion time;
+
+   double comm_dist; //communication distance in fts.
        
      
    
 
-    PathPlannerGrid(int csx,int csy,int th,std::vector<std::vector<nd> > &wg):cell_size_x(csx),cell_size_y(csy),threshold_value(th),total_points(0),start_grid_x(-1),start_grid_y(-1),goal_grid_x(-1),goal_grid_y(-1),robot_id(-1),goal_id(-1),origin_id(-1),robot_tag_id(-1),world_grid(wg), last_grid_x(-1), last_grid_y(-1), next_target_index(0), deadlock_check_counter(0), total_voronoi_cells(0), current_behaviour(0), preferred_x(0), preferred_y(0), boundary_lost(0), voronoi_wall(2), unvisited_discovered_boundary(0), index_travelled(0), coverage_completed(0), start_cell_x(-1), start_cell_y(-1), current_orient(-1), last_orient(-1), iter_wait(0), movement_made(1), wait_to_plan(0), last_move_time(0), time_spent_in_computation(0), way_to_move(0), path_completion_time(0), bot_start_movement(0), bot_end_movement(0), deadlock_replanned(0){
+    PathPlannerGrid(int csx,int csy,int th,std::vector<std::vector<nd> > &wg):cell_size_x(csx),cell_size_y(csy),threshold_value(th),total_points(0),start_grid_x(-1),start_grid_y(-1),goal_grid_x(-1),goal_grid_y(-1),robot_id(-1),goal_id(-1),origin_id(-1),robot_tag_id(-1),world_grid(wg), last_grid_x(-1), last_grid_y(-1), next_target_index(0), deadlock_check_counter(0), total_voronoi_cells(0), current_behaviour(0), preferred_x(0), preferred_y(0), boundary_lost(0), voronoi_wall(2), unvisited_discovered_boundary(0), index_travelled(0), coverage_completed(0), start_cell_x(-1), start_cell_y(-1), current_orient(-1), last_orient(-1), iter_wait(0), movement_made(1), wait_to_plan(0), last_move_time(0), time_spent_in_computation(0), way_to_move(0), path_completion_time(0), bot_start_movement(0), bot_end_movement(0), deadlock_replanned(0), comm_dist(50){
       initializeLocalPreferenceMatrix();
       initializeBactrackSearchMatrix();
       path_color = cv::Scalar(rng.uniform(0,255),rng.uniform(0,255),rng.uniform(0,255));
@@ -101,7 +104,7 @@ class PathPlannerGrid{
       status = 0;
       target_grid_cell = make_pair(-1, -1);		
     }
-    PathPlannerGrid(std::vector<std::vector<nd> > &wg):total_points(0),start_grid_x(-1),start_grid_y(-1),goal_grid_x(-1),goal_grid_y(-1),robot_id(-1),goal_id(-1),origin_id(-1),robot_tag_id(-1),world_grid(wg),last_grid_x(-1), last_grid_y(-1), next_target_index(0), deadlock_check_counter(0), total_voronoi_cells(0), current_behaviour(0), preferred_x(0), preferred_y(0), boundary_lost(0), voronoi_wall(2), unvisited_discovered_boundary(0), index_travelled(0), coverage_completed(0), start_cell_x(-1), start_cell_y(-1), current_orient(-1), last_orient(-1), iter_wait(0), movement_made(1), wait_to_plan(0), last_move_time(0), time_spent_in_computation(0), way_to_move(0), path_completion_time(0), bot_start_movement(0), bot_end_movement(0), deadlock_replanned(0){
+    PathPlannerGrid(std::vector<std::vector<nd> > &wg):total_points(0),start_grid_x(-1),start_grid_y(-1),goal_grid_x(-1),goal_grid_y(-1),robot_id(-1),goal_id(-1),origin_id(-1),robot_tag_id(-1),world_grid(wg),last_grid_x(-1), last_grid_y(-1), next_target_index(0), deadlock_check_counter(0), total_voronoi_cells(0), current_behaviour(0), preferred_x(0), preferred_y(0), boundary_lost(0), voronoi_wall(2), unvisited_discovered_boundary(0), index_travelled(0), coverage_completed(0), start_cell_x(-1), start_cell_y(-1), current_orient(-1), last_orient(-1), iter_wait(0), movement_made(1), wait_to_plan(0), last_move_time(0), time_spent_in_computation(0), way_to_move(0), path_completion_time(0), bot_start_movement(0), bot_end_movement(0), deadlock_replanned(0), comm_dist(50){
       initializeLocalPreferenceMatrix();
       initializeBactrackSearchMatrix();
       path_color = cv::Scalar(rng.uniform(0,255),rng.uniform(0,255),rng.uniform(0,255));
@@ -109,6 +112,8 @@ class PathPlannerGrid{
       status = 0;
       target_grid_cell = make_pair(-1, -1);
     }
+
+
     PathPlannerGrid& operator=(const PathPlannerGrid& pt){
       path_color = pt.path_color;
       goal_id = pt.goal_id;
@@ -213,7 +218,7 @@ class PathPlannerGrid{
 
     pair <int, int> bidForUEV(AprilInterfaceAndVideoCapture &testbed, pair <int, int> current_cell, vector<PathPlannerGrid> &bots);
 
-    pair <int, int> nearestBt(AprilInterfaceAndVideoCapture &testbed, pair <int, int> current_cell, vector<PathPlannerGrid> &bots);
+    pair <int, int> nearestBT(AprilInterfaceAndVideoCapture &testbed, pair <int, int> current_cell, vector<PathPlannerGrid> &bots);
    
    
     

@@ -21,6 +21,7 @@ struct bot_config{
     //below line would first call plan PathPlannerGrid constructor with no argument and then replace lhs variables with rhs ones
     //plan = PathPlannerGrid(cx,cy,thresh,tp);
   }
+
   void init(){
     plan.start_grid_x = plan.start_grid_y = -1;
     plan.robot_id = -1;
@@ -191,8 +192,8 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 		string address;
 		switch(a)
 		{
-			case 0: address = "../Maps/Basic.png"; break;
-			case 1: address = "../Maps/Cluttered.png"; break;
+			case 1: address = "../Maps/Basic.png"; break;
+			case 0: address = "../Maps/Cluttered.png"; break;
 			case 2: address = "../Maps/Office.png"; break;
 		}	
 		cout<<"address: "<<address<<endl;		
@@ -746,8 +747,8 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 			/*case 0: path = "../Results/Basic/"; break;
 			case 1: path = "../Results/Cluttered/"; break;
 			case 2: path = "../Results/Office/"; break;*/
-			case 0: path = "/home/robot/Documents/Results_Collision/Results/Basic/"; break;
-			case 1: path = "/home/robot/Documents/Results_Collision/Results/Cluttered/"; break;
+			case 1: path = "/home/robot/Documents/Results_Collision/Results/Basic/"; break;
+			case 0: path = "/home/robot/Documents/Results_Collision/Results/Cluttered/"; break;
 			case 2: path = "/home/robot/Documents/Results_Collision/Results/Office/"; break;
 		}	
 		cout<<"path: "<<path<<endl;
@@ -1493,7 +1494,7 @@ int main(int argc, char* argv[]) {
   get_results = false;
   if(get_results)
   {
-  	getSimulatioResults(1, 20, 7);//number of maps, trials, algos
+  	getSimulatioResults(1, 20, 5);//number of maps, trials, algos
   	return 0;
   }
   AprilInterfaceAndVideoCapture testbed;  
@@ -1514,9 +1515,22 @@ int main(int argc, char* argv[]) {
   cin>>robotCount;
   
   //tag id should also not go beyond max_robots
-  vector<vector<nd>> tp;//a map that would be shared among all
+ /* vector<vector<nd>> tp;//a map that would be shared among all
   vector<bot_config> bots(robotCount,bot_config(10, 10,130,tp));
   vector<PathPlannerGrid> planners(robotCount,PathPlannerGrid(tp));
+*/
+
+
+  vector <vector<vector<nd>>> tp(robotCount);
+  vector<bot_config> bots;
+  vector<PathPlannerGrid> planners;
+  for(int i = 0; i < robotCount; i++)
+  {
+  	bots.push_back(bot_config(10, 10,130,tp[i]));
+  	planners.push_back(PathPlannerGrid(tp[i]));
+  }
+
+
 
   int algo_select;
   cout<<"\nSelect the Algorithm\n" 
@@ -1555,7 +1569,7 @@ int main(int argc, char* argv[]) {
     image = imread("../Maps/Basic.png");
   	cvtColor(image, image_gray, CV_BGR2GRAY);
 
-    if(first_iter){
+   /* if(first_iter){
       bots[0].plan.overlayGrid(testbed.detections,image_gray);//overlay grid completely reintialize the grid, we have to call it once at the beginning only when all robots first seen simultaneously(the surrounding is assumed to be static) not every iteration
       for(int i = 1;i<bots.size();i++){
         bots[i].plan.rcells = bots[0].plan.rcells;
@@ -1582,6 +1596,32 @@ int main(int argc, char* argv[]) {
       	bots[i].plan.robot_tag_id = i;
       }
     }
+*/
+    if(first_iter){     
+     //srand(time(0));
+      for(int i = 0; i < bots.size(); i++)
+      {
+      	bots[i].plan.overlayGrid(testbed.detections,image_gray);
+      	int r = rand()%bots[i].plan.rcells;
+      	int c = rand()%bots[i].plan.ccells;
+      	while((bots[i].plan.isBlocked(r, c)))
+      	{
+      		r = rand()%bots[i].plan.rcells;
+      		c = rand()%bots[i].plan.ccells;
+      	}
+      	//bots[i].plan.path_points.push_back(pt(r, c));
+      	bots[i].plan.addGridCellToPath(r, c, testbed);
+      	bots[i].plan.world_grid[r][c].steps = 1;      	
+      	bots[i].pose.x = r;
+      	bots[i].pose.y = c;
+      	bots[i].pose.omega = rand()%4;
+      	bots[i].plan.current_orient = bots[i].pose.omega;
+      	bots[i].plan.robot_id = i;
+      	bots[i].plan.robot_tag_id = i;
+      	bots[i].plan.comm_dist = 0;
+      }
+    }
+
 
     
  
@@ -1606,7 +1646,12 @@ int main(int argc, char* argv[]) {
       case 9: bots[i].plan.ANTS(testbed,bots[i].pose, 2.5,planners); break;     
       default: bots[i].plan.BSACoverageIncremental(testbed,bots[i].pose, 2.5,planners);   
       }
-      planners[i] = bots[i].plan;   
+      planners[i] = bots[i].plan; 
+      /*for(int j = 0; j < bots.size(); j++)
+      {
+      	if(j==i)continue;
+      	bots[j].plan.world_grid = planners[j].world_grid;
+      }  */
     }
     double compute_end  = tic();
     time_to_compute += (compute_end-compute_start);
