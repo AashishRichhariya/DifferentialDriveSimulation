@@ -98,8 +98,8 @@ void PathPlannerGrid::shareMap(AprilInterfaceAndVideoCapture &testbed, vector<Pa
     for(int r = 0; r < rcells; r++)
     {
       for(int c = 0; c < ccells; c++)
-      {
-
+      {   
+        world_grid[r][c].bot_presence = make_pair(0, -1);
         if(bots[i].world_grid[r][c].steps)
         {
           world_grid[r][c].steps = 1;
@@ -118,6 +118,7 @@ void PathPlannerGrid::shareMap(AprilInterfaceAndVideoCapture &testbed, vector<Pa
         }    
       }
     }
+    world_grid[bots[i].start_grid_x][bots[i].start_grid_y].bot_presence = make_pair(1, i);
   }
 }
 void PathPlannerGrid::gridInversion(const PathPlannerGrid &planner,int rid){//invert visitable and non visitable cells for the given rid

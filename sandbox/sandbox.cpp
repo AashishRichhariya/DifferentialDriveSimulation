@@ -1618,7 +1618,7 @@ int main(int argc, char* argv[]) {
       	bots[i].plan.current_orient = bots[i].pose.omega;
       	bots[i].plan.robot_id = i;
       	bots[i].plan.robot_tag_id = i;
-      	bots[i].plan.comm_dist = 0;
+      	bots[i].plan.comm_dist = 50;
       }
     }
 
@@ -1646,13 +1646,9 @@ int main(int argc, char* argv[]) {
       case 9: bots[i].plan.ANTS(testbed,bots[i].pose, 2.5,planners); break;     
       default: bots[i].plan.BSACoverageIncremental(testbed,bots[i].pose, 2.5,planners);   
       }
-      planners[i] = bots[i].plan; 
-      /*for(int j = 0; j < bots.size(); j++)
-      {
-      	if(j==i)continue;
-      	bots[j].plan.world_grid = planners[j].world_grid;
-      }  */
+      planners[i] = bots[i].plan;    
     }
+    cv::waitKey(0);
     double compute_end  = tic();
     time_to_compute += (compute_end-compute_start);
 
