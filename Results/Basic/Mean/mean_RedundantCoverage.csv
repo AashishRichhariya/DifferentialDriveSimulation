@@ -1,3 +1,4 @@
- ,BSA-CM (Basic),BSA-CM (Updated Backtracking),Boustrophedon Motion (Updated Backtracking),Boustrophedon Motion (BSA-CM like Backtracking),BoB,MDFS,Brick and Mortar,
-1,165,171.667,235,
-2,176.667,182,292.667,
+comm range: 6, , , , , , , , ,comm range: 12, , , , , , , , ,comm range: 36, , , , , , , , ,
+ ,BSA-CM,SSB,BoB,MDFS,BnM, , , , ,BSA-CM,SSB,BoB,MDFS,BnM, , , , ,BSA-CM,SSB,BoB,MDFS,BnM, , , ,
+2,554,536,441,1984.5,291, , , ,2,419.5,509,289.5,1984.5,347, , , ,2,236.5,276.5,315,1984.5,316, , , ,
+4,844,667.5,514.5,1862,471, , , ,4,424.5,371.5,343,2012,722.5, , , ,4,419.5,334.5,317.5,2012,474, , , ,

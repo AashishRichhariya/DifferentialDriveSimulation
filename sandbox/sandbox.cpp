@@ -1489,12 +1489,964 @@ void getSimulatioResults(int number_of_maps, int number_of_trials, int number_of
 							
 }
 
+void getSimulatioResults2(int number_of_maps, int number_of_trials, int number_of_algos)
+{	
+	vector <vector <vector <vector <double>>>> repetedsteps (number_of_maps);
+	vector <vector <vector <vector <double>>>> range_of_path_length (number_of_maps);
+	vector <vector <vector <vector <double>>>> percentage_coverage (number_of_maps);
+
+	vector <double> comm_ranges = {/*3,*/ 6, /*9, */12, /*15, 18, 21,24, 27, 30, 33,*/ 36};
+	vector <int> number_of_robots = {/*1,*/ 2, 4, /*6, 8*//*, 10, 12*/}; 
+
+	for(int a = 0; a < number_of_maps; a++)
+	{
+		repetedsteps[a].resize(comm_ranges.size());
+		range_of_path_length[a].resize(comm_ranges.size());
+		percentage_coverage[a].resize(comm_ranges.size());
+	
+		string address;
+		switch(a)
+		{
+			case 0: address = "../Maps/Basic.png"; break;
+			case 1: address = "../Maps/Cluttered.png"; break;
+			case 2: address = "../Maps/Office.png"; break;
+		}	
+		cout<<"address: "<<address<<endl;		
+		for(int b = 0; b < number_of_robots.size(); b++)			
+		{	
+			int trials = number_of_trials;												
+			while(trials)
+			{	
+				bool problem_in_the_trial = 0;
+				vector <int> start_r(number_of_robots[b]);//starting row
+				vector <int> start_c(number_of_robots[b]);//starting column
+				vector <int> start_o(number_of_robots[b]);//starting orientaion
+				int first_algo_call = 1;
+				for(int c = 0; c < comm_ranges.size(); c++)
+				{
+					repetedsteps[a][c].resize(number_of_trials+3);
+					range_of_path_length[a][c].resize(number_of_trials+3);
+					percentage_coverage[a][c].resize(number_of_trials+3);
+
+					vector <int> repeatedCoverage(number_of_algos);				
+					vector <double> path_length_range(number_of_algos);
+					vector <double> percent_Covered(number_of_algos);
+					
+
+					for(int d = 0; d < number_of_algos; d++)
+					{
+						AprilInterfaceAndVideoCapture testbed; 
+	                    int first_iter = 1;
+						//const char *windowName = "Arena";
+						//cv::namedWindow(windowName,WINDOW_NORMAL);
+						cv::Mat image;
+						cv::Mat image_gray;
+						int robotCount = number_of_robots[b];
+						vector <vector<vector<nd>>> tp(robotCount);
+						vector<bot_config> bots;
+						vector<PathPlannerGrid> planners;
+						for(int i = 0; i < robotCount; i++)
+						{
+							bots.push_back(bot_config(10, 10,130,tp[i]));
+						  	planners.push_back(PathPlannerGrid(tp[i]));
+						}
+						int algo_select = d+1;
+						double start_t = tic();
+						double compute_time = 0;					
+						double start_movement = 0;
+	  					double end_movement = 0;
+	  					double move_straight_time = 2680;
+	  					double turn_quarter_time = 1496;
+
+	  					int total_iterations = 0;
+
+
+						while(true){
+							cout<<"*************************\n\n";
+							cout<<"address: "<<address<<endl;	
+							cout<<"Map: "<<a+1<<"/"<<number_of_maps<<endl;
+							cout<<"Robots count: "<<(b+1)<<"/"<<number_of_robots.size()<<endl;
+							cout<<"trial count: "<<number_of_trials-trials+1<<"/"<<number_of_trials<<endl;
+							cout<<"comm_range: "<<c+1<<"/"<<comm_ranges.size()<<endl;
+							cout<<"Algo Count: "<<d+1<<"/"<<number_of_algos<<endl;
+							cout<<"*************************\n\n";
+							total_iterations++;
+							if(total_iterations>18000)
+							{
+								problem_in_the_trial = 1;
+								break;
+							}
+
+							image = imread(address);						
+							cvtColor(image, image_gray, CV_BGR2GRAY);
+	  						if(first_iter){	  						
+	  							for(int i = 0; i < bots.size(); i++)
+	  							{
+	  								bots[i].plan.overlayGrid(testbed.detections,image_gray);//overlay grid completely reintialize the grid, we have to call it once at the beginning only when all robots first seen simultaneously(the surrounding is assumed to be static) not every iteration
+								    srand(time(0));
+								    if(first_algo_call)
+								    {
+								    	first_algo_call = 0;
+								    	for(int j = 0; j < bots.size(); j++)
+									    {
+									    	
+									    	start_r[j] = rand()%bots[0].plan.rcells;
+										    start_c[j] = rand()%bots[0].plan.ccells;
+										    while((bots[0].plan.isBlocked(start_r[j], start_c[j])))
+										    {
+										      	start_r[j] = rand()%bots[0].plan.rcells;
+										    	start_c[j] = rand()%bots[0].plan.ccells;
+										    }			    							    
+									      	start_o[j] = rand()%4;						      
+									    }		
+								    }								    		
+						    						    	
+								    bots[i].plan.addGridCellToPath(start_r[i], start_c[i], testbed);
+								    bots[i].plan.world_grid[start_r[i]][start_c[i]].steps = 1;      	
+								    bots[i].pose.x = start_r[i];
+								    bots[i].pose.y = start_c[i];
+								    bots[i].pose.omega = start_o[i];
+								    bots[i].plan.current_orient = bots[i].pose.omega;
+								    bots[i].plan.robot_id = i;
+								    bots[i].plan.robot_tag_id = i;
+								    bots[i].plan.comm_dist = comm_ranges[c];//feets				
+	  							}//for i							    					    
+						    }//if first_iter
+
+						    for(int i = 0;i<bots.size();i++){      
+						      planners[i] = bots[i].plan;
+						    }
+						    
+						    double compute_start = tic();
+						    for(int i = 0;i<bots.size();i++){
+						      bots[i].plan.wait_to_plan = 0;
+						      cout<<i<<": ";
+						      switch(algo_select)
+						      {
+						      case 1: bots[i].plan.BSACoverageIncremental(testbed,bots[i].pose, 2.5,planners); break;
+						      case 2: bots[i].plan.SSB(testbed,bots[i].pose, 2.5,planners); break;				
+						      case 3: bots[i].plan.BoB(testbed,bots[i].pose, 2.5,planners); break; 
+						      case 4: bots[i].plan.MDFS(testbed,bots[i].pose, 2.5,planners); break;
+						      case 5: bots[i].plan.BrickAndMortar(testbed,bots[i].pose, 2.5,planners); break; 
+						      case 6: bots[i].plan.BoustrophedonMotionWithUpdatedBactrackSelection(testbed,bots[i].pose, 2.5,planners); break;
+						      case 7: bots[i].plan.BoustrophedonMotionWithBSA_CMlikeBacktracking(testbed,bots[i].pose, 2.5,planners); break;    
+						      case 8: bots[i].plan.S_MSTC(testbed,bots[i].pose, 2.5,planners); break;
+						      case 9: bots[i].plan.ANTS(testbed,bots[i].pose, 2.5,planners); break;    
+						      default: bots[i].plan.BSACoverageIncremental(testbed,bots[i].pose, 2.5,planners);   
+						      } 
+						      planners[i] = bots[i].plan;  
+						    }
+						    double compute_end  = tic();
+						    int path_sum = 0;
+							for(int i = 0; i < bots.size(); i++)
+							{
+								path_sum+= bots[i].plan.path_points.size();
+							}		
+							/*if(path_sum>5500)
+							{
+								problem_in_the_trial = 1;
+								break;
+							}	
+*/
+						    vector <pair<double, int>> time_left_to_move(bots.size());
+						    double time_since_last_movement;
+						    double current_time = tic();    
+							if(!first_iter)
+							{
+								for(int i = 0; i < bots.size(); i++)
+								{	
+									bots[i].plan.bot_start_movement=current_time;
+									bots[i].plan.next_target_index = bots[i].plan.index_travelled+1;
+						        	if((bots[i].plan.next_target_index) < bots[i].plan.path_points.size())
+						        	{
+						        	 	bots[i].plan.time_spent_in_computation += (bots[i].plan.bot_start_movement-end_movement);	
+										time_since_last_movement = current_time - bots[i].plan.last_move_time - bots[i].plan.time_spent_in_computation;
+										time_left_to_move[i].first = bots[i].plan.wait_time-time_since_last_movement;
+										time_left_to_move[i].second = bots[i].plan.robot_tag_id;									
+							        }
+							        else
+							        {
+							        	time_left_to_move[i].first = 100000000;
+										time_left_to_move[i].second = bots[i].plan.robot_tag_id;
+							        }						        
+								}							
+							}
+							//sort(time_left_to_move.begin(), time_left_to_move.end());
+
+							start_movement = tic();
+						   	current_time = tic();
+
+						   	pair <int, int> wheel_velocities;//dummy variable in case of simulation
+						    for(int i = 0;i<bots.size();i++){    
+						        bots[time_left_to_move[i].second].plan.next_target_index = bots[time_left_to_move[i].second].plan.index_travelled+1;
+						        if((bots[time_left_to_move[i].second].plan.next_target_index) != bots[time_left_to_move[i].second].plan.path_points.size())
+						        {
+						        	cout<<"id: "<<bots[time_left_to_move[i].second].plan.robot_tag_id<<endl;
+						        	if(bots[time_left_to_move[i].second].plan.movement_made==1 && !first_iter)
+							        {
+							        	bots[time_left_to_move[i].second].plan.last_orient = bots[time_left_to_move[i].second].plan.current_orient;
+							        	int nx = bots[time_left_to_move[i].second].plan.path_points[bots[time_left_to_move[i].second].plan.next_target_index].x - bots[time_left_to_move[i].second].plan.path_points[bots[time_left_to_move[i].second].plan.next_target_index-1].x;
+							        	int ny = bots[time_left_to_move[i].second].plan.path_points[bots[time_left_to_move[i].second].plan.next_target_index].y - bots[time_left_to_move[i].second].plan.path_points[bots[time_left_to_move[i].second].plan.next_target_index-1].y;
+							        	if(nx==0 && ny==0) bots[time_left_to_move[i].second].plan.iter_wait = 0;
+							        	else if(nx == -1 && ny == 0 )//up
+							        	{
+							        		bots[time_left_to_move[i].second].plan.current_orient = 0;	        	
+							        	}
+							        	else if(nx == 0 && ny == 1)//right
+							        	{
+							        		bots[time_left_to_move[i].second].plan.current_orient = 1;
+							        	}
+							        	else if(nx == 1 && ny == 0)//down
+							        	{
+							        		bots[time_left_to_move[i].second].plan.current_orient = 2;
+							        	}
+							        	else if(nx == 0 && ny == -1)//left
+							        	{
+							        		bots[time_left_to_move[i].second].plan.current_orient = 3;
+							        	}
+							        	if(!(nx==0 && ny==0))
+							        	{
+							        		if(abs(bots[time_left_to_move[i].second].plan.current_orient - bots[time_left_to_move[i].second].plan.last_orient)==0)//moving straight
+							        		{
+							        			bots[time_left_to_move[i].second].plan.way_to_move = 0;
+							        			//bots[time_left_to_move[i].second].plan.iter_wait = 0 + rand()%3;
+							        			double rand_delay = rand()%600;
+							        			rand_delay = 300 - rand_delay;
+							        			bots[time_left_to_move[i].second].plan.path_completion_time += (move_straight_time + rand_delay)/1000;
+							        			bots[time_left_to_move[i].second].plan.wait_time = (move_straight_time + rand_delay)/(100000000);
+							        		}
+							        		else if(abs(bots[time_left_to_move[i].second].plan.current_orient - bots[time_left_to_move[i].second].plan.last_orient)%3==0)//moving 90 degree
+							        		{
+							        			bots[time_left_to_move[i].second].plan.way_to_move = 1;
+							        			//bots[time_left_to_move[i].second].plan.iter_wait = 3 + rand()%3;
+							        			double rand_delay_straight = rand()%600;
+							        			rand_delay_straight = 300 - rand_delay_straight;
+							        			double rand_delay_turn = rand()%400;
+							        			rand_delay_turn = 200 - rand_delay_turn;
+							        			double rand_delay = rand_delay_straight + rand_delay_turn;
+							        			bots[time_left_to_move[i].second].plan.path_completion_time += (move_straight_time + turn_quarter_time+ rand_delay)/1000;
+							        			bots[time_left_to_move[i].second].plan.wait_time = (move_straight_time + turn_quarter_time+ rand_delay)/(100000000);
+							        		}
+							        		else if(abs(bots[time_left_to_move[i].second].plan.current_orient - bots[time_left_to_move[i].second].plan.last_orient)==1)//moving 90 degree
+							        		{
+							        			bots[time_left_to_move[i].second].plan.way_to_move = 1;
+							        			double rand_delay_straight = rand()%600;
+							        			rand_delay_straight = 300 - rand_delay_straight;
+							        			double rand_delay_turn = rand()%400;
+							        			rand_delay_turn = 200 - rand_delay_turn;
+							        			double rand_delay = rand_delay_straight + rand_delay_turn;
+							        			bots[time_left_to_move[i].second].plan.path_completion_time += (move_straight_time + turn_quarter_time+ rand_delay)/1000;
+							        			bots[time_left_to_move[i].second].plan.wait_time = (move_straight_time + turn_quarter_time+ rand_delay)/(100000000);
+							        			//bots[time_left_to_move[i].second].plan.iter_wait = 3 + rand()%3;
+							        		}
+							        		else if(abs(bots[time_left_to_move[i].second].plan.current_orient - bots[time_left_to_move[i].second].plan.last_orient)==2)//moving 180 degree
+							        		{
+							        			bots[time_left_to_move[i].second].plan.way_to_move = 2;
+							        			double rand_delay_straight = rand()%600;
+							        			rand_delay_straight = 300 - rand_delay_straight;
+							        			double rand_delay_turn = rand()%400;
+							        			rand_delay_turn = 200 - rand_delay_turn;
+							        			double rand_delay = rand_delay_straight + rand_delay_turn;
+							        			bots[time_left_to_move[i].second].plan.path_completion_time += (move_straight_time + turn_quarter_time + turn_quarter_time+ rand_delay)/1000;
+							        			bots[time_left_to_move[i].second].plan.wait_time = (move_straight_time + turn_quarter_time+ turn_quarter_time + rand_delay)/(100000000);
+							        			//bots[time_left_to_move[i].second].plan.iter_wait = 6 + rand()%3;
+							        		}
+							        	}
+							        }
+							        
+							        bots[time_left_to_move[i].second].plan.time_spent_in_computation += (start_movement-bots[time_left_to_move[i].second].plan.bot_start_movement);
+							        time_since_last_movement = current_time - bots[time_left_to_move[i].second].plan.last_move_time - bots[time_left_to_move[i].second].plan.time_spent_in_computation;						       
+						        	//if((time_since_last_movement >= bots[time_left_to_move[i].second].plan.wait_time) && !check_collision_possibility(testbed, planners, bots, wheel_velocities, time_left_to_move[i].second) /*&& bots[time_left_to_move[i].second].plan.iter_wait <=0!*/) {
+						        	if(1){	       		
+						        		bots[time_left_to_move[i].second].plan.index_travelled++;
+						        		//bots[time_left_to_move[i].second].plan.updateMovementinSimulation(testbed);
+						       			planners[time_left_to_move[i].second] = bots[time_left_to_move[i].second].plan;
+						        		bots[time_left_to_move[i].second].plan.movement_made = 1;
+						        		bots[time_left_to_move[i].second].plan.time_spent_in_computation = 0;
+						        	}
+						        	else{	        	
+							        	bots[time_left_to_move[i].second].plan.movement_made = 0;
+						        	}        	
+						        }    
+						   	}   					   	
+						   	end_movement = tic();
+						   	/*for(int i = 0; i < bots.size(); i++)
+							{	    
+							    if(bots[i].plan.movement_made==1)
+								{
+								   bots[i].plan.last_move_time = end_movement;
+								}
+							      		
+							}*/
+
+
+
+						   	
+						   	//bots[0].plan.drawGrid(image, planners);
+						   	//for(int i = 0;i<bots.size();i++){      	
+						    //    bots[i].plan.drawPath(image);        
+						    //}
+						    //for(int i = 0; i < bots.size(); i++)
+						    //{
+						    //	bots[i].plan.drawRobot(image);
+						    //}
+						    //imshow(windowName,image);
+							bool completed = 1;
+						    for(int i = 0; i < bots.size(); i++)
+						    {
+						    	if(bots[i].plan.path_points.size()!=(bots[i].plan.next_target_index))
+						    	{
+						    		completed = 0;
+						    		break;
+						    	}
+						    }
+						    if(!first_iter && completed == 1)
+						    {
+						    	cout<<"Coverage Completed!\n";
+						    	break;
+						    }
+
+						    if(first_iter)
+						    {
+						     	first_iter = 0;
+						    }
+						    //if (cv::waitKey(1) == 27){
+						    //    break;//until escape is pressed
+						    //}
+						}//while true
+						double end_t = tic();
+						bool succesful_termination = 1;
+						double empty_cells = 0;
+						double covered_cells = 0;
+						for(int i = 0; i < bots[0].plan.rcells; i++)
+						{
+						  for(int j = 0; j < bots[0].plan.ccells; j++)
+						  {
+						   	if(bots[0].plan.isEmpty(i,j))
+						    {
+						        empty_cells++;
+						    }
+						  }    
+						}
+						if(succesful_termination!=1) problem_in_the_trial = 1;
+						for(int j = 0; j < bots.size(); j++)
+						{
+							if(problem_in_the_trial == 1) break;
+							for(int i = 0;i<bots[j].plan.total_points-1;i++){
+							    if((abs((bots[j].plan.path_points[i].x)-(bots[j].plan.path_points[i+1].x)) + abs((bots[j].plan.path_points[i].y)- (bots[j].plan.path_points[i+1].y)))>1)
+							    {
+							      problem_in_the_trial = 1;						      
+							      cout<<"manhattan_distance of target_grid_cell greater than 1\n";
+							      break;
+							    }						    
+							}
+							if(problem_in_the_trial == 1) break;
+						}	
+						
+						if(problem_in_the_trial) break;
+	  					//imshow(windowName,image);
+	  					int min_length = 100000000;
+				    	int max_length = 0;
+				    	for(int i = 0; i < bots.size(); i++)
+				    	{
+				    		if(bots[i].plan.path_points.size()<min_length)
+				    		{
+				    			min_length = bots[i].plan.path_points.size();
+				    		}
+				    		if(bots[i].plan.path_points.size() > max_length)
+				    		{
+				    			max_length = bots[i].plan.path_points.size();
+				    		}
+				    	}
+				    	path_length_range[d] = max_length-min_length;		    	
+
+	  					vector <vector<int>> coverage(bots[0].plan.rcells);
+						for(int i = 0; i < bots[0].plan.rcells; i++)
+						{
+							coverage[i].resize(bots[0].plan.ccells);
+						}
+						for(int i = 0; i < bots.size(); i++)
+						{
+							for(int j = 0; j < bots[i].plan.path_points.size(); j++)
+							{
+								coverage[bots[i].plan.path_points[j].x][bots[i].plan.path_points[j].y]++;
+								if(coverage[bots[i].plan.path_points[j].x][bots[i].plan.path_points[j].y] > 1)
+								{
+									repeatedCoverage[d]++;
+								}
+								else
+								{
+									covered_cells++;
+								}
+							}
+						}
+
+						cout<<"empty_cells: "<<empty_cells<<endl;
+						cout<<"covered_cells: "<<covered_cells<<endl;
+						double cover_percent;
+						cover_percent = (covered_cells/empty_cells)*100;
+						percent_Covered[d] = cover_percent;
+						double max_time = -1;
+						for(int i = 0; i < bots.size();i++)
+						{						
+							if(bots[i].plan.path_completion_time > max_time)
+							{
+								max_time = bots[i].plan.path_completion_time;
+							}
+						}
+
+
+						cout<<"***************************\n";
+						cout<<"Results: "<<endl;						
+						cout<<"empty_cells: "<<empty_cells<<endl;
+						cout<<"covered_cells: "<<covered_cells<<endl;	
+						cout<<"total_iterations: "<<total_iterations<<endl;					
+						cout<<"repeatedCoverage: "<<repeatedCoverage[d]<<endl;					
+						cout<<"path_legth_range (Max - Min): "<<path_length_range[d]<<" ft."<<endl;
+						cout<<"Coverage Percentage: "<<percent_Covered[d]<<"%"<<endl;		
+						cout<<"***************************\n";	
+
+						
+						//cv::waitKey(0);
+					}//for d, number of algos
+					if(problem_in_the_trial) break;
+					//values to be logged here
+					for(int i = 0; i < number_of_algos; i++)
+						{
+							repetedsteps[a][c][number_of_trials-trials].push_back(repeatedCoverage[i]);
+							range_of_path_length[a][c][number_of_trials-trials].push_back(path_length_range[i]);	
+							percentage_coverage[a][c][number_of_trials-trials].push_back(percent_Covered[i]);	
+						}	
+											
+				}//for c, communication range
+				if(problem_in_the_trial) continue;			
+				
+				trials--;
+			}//while trials			
+		}//b, number of robots
+	}//number of maps
+
+	int l;
+	int row_size = repetedsteps[0][0][0].size();
+	//Calculate mean and Sd
+	for(int a = 0; a < number_of_maps; a++)
+	{
+		for(int c = 0; c < comm_ranges.size(); c++)
+		{
+			for(int i = 0; i < row_size; i++)
+			{
+				//if(i!=0 && (i%number_of_algos)==0) continue;				
+
+				double sum_redundant = 0;
+				double mean_redundant = 0;
+				double sd_redundant = 0;
+
+
+				double sum_range_path_length = 0;
+				double mean_range_path_length = 0;
+				double sd_range_path_length = 0;
+
+				double sum_percent_coverage = 0;
+				double mean_percent_coverage = 0;
+				double sd_percent_coverage = 0;
+
+				
+				for(int j = 0; j < number_of_trials; j++)
+				{
+					sum_redundant+= repetedsteps[a][c][j][i];
+					sum_range_path_length+=range_of_path_length[a][c][j][i];
+					sum_percent_coverage +=percentage_coverage[a][c][j][i];
+				}
+				mean_redundant = sum_redundant/number_of_trials;
+				mean_range_path_length = sum_range_path_length/number_of_trials;
+				mean_percent_coverage = sum_percent_coverage/number_of_trials;
+				
+				repetedsteps[a][c][number_of_trials+1].push_back(mean_redundant);				
+				range_of_path_length[a][c][number_of_trials+1].push_back(mean_range_path_length);
+				percentage_coverage[a][c][number_of_trials+1].push_back(mean_percent_coverage);
+
+				for(int j = 0; j < number_of_trials; j++)
+				{
+					sd_redundant+= pow((repetedsteps[a][c][j][i] - mean_redundant),2);
+					sd_range_path_length+=pow((range_of_path_length[a][c][j][i] - mean_range_path_length), 2);
+					sd_percent_coverage+=pow((percentage_coverage[a][c][j][i] - mean_percent_coverage), 2);
+				}
+				
+				sd_redundant = sqrt(sd_redundant/number_of_trials);
+				sd_range_path_length =sqrt(sd_range_path_length/number_of_trials);
+				sd_percent_coverage =sqrt(sd_percent_coverage/number_of_trials);
+
+				repetedsteps[a][c][number_of_trials+2].push_back(sd_redundant);
+				range_of_path_length[a][c][number_of_trials+2].push_back(sd_range_path_length);
+				percentage_coverage[a][c][number_of_trials+2].push_back(sd_percent_coverage);
+			}
+		}	
+		
+	}
+
+	ofstream outputFile;
+	
+	for(int a = 0; a < number_of_maps; a++)
+	{	
+		string path;
+		string save_address;
+		switch(a)
+		{
+			case 0: path = "../Results/Basic/"; break;
+			case 1: path = "../Results/Cluttered/"; break;
+			case 2: path = "../Results/Office/"; break;
+		}	
+		
+			cout<<"path: "<<path<<endl;
+			cout<<"*************\n";
+			cout<<"Map #"<<a<<endl<<endl<<endl;
+			cout<<"*************\n";
+
+
+			cout<<"Redundant Coverage: "<<endl;
+			save_address = path +"RedundantCoverage.csv";		
+			outputFile.open(save_address);
+			for(int c = 0; c < comm_ranges.size(); c++)
+			{
+				outputFile<<"Comunication range: "<<comm_ranges[c]<<",";
+				outputFile<<endl;
+				for(int i = 0; i < number_of_trials + 3; i++)
+				{
+				
+					l = 0;
+					for(int j = 0; j < repetedsteps[a][c][i].size(); j++)
+					{
+						if(i==number_of_trials)
+						{
+							outputFile<<" "<<",";
+							cout<<"** ";
+							continue;
+						}
+						outputFile<<repetedsteps[a][c][i][j]<<",";
+						cout<<repetedsteps[a][c][i][j]<<" ";
+						l++;
+						l%=number_of_algos;
+						if(l==0)
+						{
+							outputFile<<" "<<",";
+							cout<<"** ";
+						}
+					}
+					outputFile<<endl;
+					cout<<endl;
+				}
+				outputFile<<endl<<endl<<endl<<endl<<endl<<endl;
+				cout<<endl<<endl<<endl<<endl<<endl<<endl;				
+			}
+			outputFile.close();	
+			cout<<endl;
+			
+			cout<<"range_of_path_length: "<<endl;
+			save_address = path +"range_of_path_length.csv";
+			outputFile.open(save_address);
+			
+			for(int c = 0; c < comm_ranges.size(); c++)
+			{
+				outputFile<<"Comunication range: "<<comm_ranges[c]<<",";
+				outputFile<<endl;
+				for(int i = 0; i < number_of_trials + 3; i++)
+				{
+					l = 0;
+					for(int j = 0; j < range_of_path_length[a][c][i].size(); j++)
+					{
+						if(i==number_of_trials)
+						{
+							outputFile<<" "<<",";
+							cout<<"** ";
+							continue;
+						}
+					
+						outputFile<<range_of_path_length[a][c][i][j]<<",";
+						cout<<range_of_path_length[a][c][i][j]<<" ";
+						l++;
+						l%=number_of_algos;
+						if(l==0)
+						{
+							outputFile<<" "<<",";
+							cout<<"** ";
+						}
+					}
+					outputFile<<endl;
+					cout<<endl;
+				}		
+				outputFile<<endl<<endl<<endl<<endl<<endl<<endl;
+				cout<<endl<<endl<<endl<<endl<<endl<<endl;				
+			}
+			outputFile.close();
+			cout<<endl;
+			
+
+			cout<<"percentCoverage: "<<endl;
+			save_address = path +"percent_coverage.csv";
+			outputFile.open(save_address);
+			for(int c = 0; c < comm_ranges.size(); c++)
+			{
+				outputFile<<"Comunication range: "<<comm_ranges[c]<<",";
+				outputFile<<endl;
+				for(int i = 0; i < number_of_trials + 3; i++)
+				{
+					l = 0;
+					for(int j = 0; j < percentage_coverage[a][c][i].size(); j++)
+					{
+						if(i==number_of_trials)
+						{
+							outputFile<<" "<<",";
+							cout<<"** ";
+							continue;
+						}
+					
+						outputFile<<percentage_coverage[a][c][i][j]<<",";
+						cout<<percentage_coverage[a][c][i][j]<<" ";
+						l++;
+						l%=number_of_algos;
+						if(l==0)
+						{
+							outputFile<<" "<<",";
+							cout<<"** ";
+						}
+					}
+					outputFile<<endl;
+					cout<<endl;
+				}	
+				outputFile<<endl<<endl<<endl<<endl<<endl<<endl;
+				cout<<endl<<endl<<endl<<endl<<endl<<endl;	
+			}		
+			outputFile.close();
+			cout<<endl;
+		
+		
+		cout<<"******************************************************\n";
+		cout<<"Mean matrix: \n";
+
+		
+
+		cout<<"Redundant Coverage: "<<endl;
+		save_address = path +"Mean/mean_RedundantCoverage.csv";
+		outputFile.open(save_address);
+		for(int c = 0; c < comm_ranges.size(); c++)
+		{
+			outputFile<<"comm range: "<<comm_ranges[c]<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+		}
+		outputFile<<endl;
+		for(int c = 0; c < comm_ranges.size(); c++)
+		{
+			outputFile<<" "<<",";
+			outputFile<<"BSA-CM"<<",";
+			outputFile<<"SSB"<<",";
+			outputFile<<"BoB"<<",";
+			outputFile<<"MDFS"<<",";
+			outputFile<<"BnM"<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+		}
+		outputFile<<endl;
+
+		for(int i = 0; i < number_of_robots.size(); i++)
+		{
+			for(int c = 0; c < comm_ranges.size(); c++)
+			{
+				outputFile<<number_of_robots[i]<<",";
+				for(int j = 0; j < number_of_algos; j++)
+				{
+					outputFile<<repetedsteps[a][c][number_of_trials+1][(i*number_of_algos)+j]<<",";
+					cout<<repetedsteps[a][c][number_of_trials+1][(i*number_of_algos)+j]<<" ";
+				}
+				outputFile<<" "<<",";
+				outputFile<<" "<<",";
+				outputFile<<" "<<",";
+			}
+			
+			outputFile<<endl;
+			cout<<endl;
+		}
+		outputFile.close();	
+		cout<<endl;
+
+
+		cout<<"range_of_path_length: "<<endl;
+		save_address = path + "Mean/mean_range_of_path_length.csv";
+		outputFile.open(save_address);
+		for(int c = 0; c < comm_ranges.size(); c++)
+		{
+			outputFile<<"comm range: "<<comm_ranges[c]<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+		}
+		outputFile<<endl;
+		for(int c = 0; c < comm_ranges.size(); c++)
+		{
+			outputFile<<" "<<",";
+			outputFile<<"BSA-CM"<<",";
+			outputFile<<"SSB"<<",";
+			outputFile<<"BoB"<<",";
+			outputFile<<"MDFS"<<",";
+			outputFile<<"BnM"<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+		}
+		outputFile<<endl;
+		for(int i = 0; i < number_of_robots.size(); i++)
+		{
+			
+			for(int c = 0; c < comm_ranges.size(); c++)
+			{
+				outputFile<<number_of_robots[i]<<",";
+				for(int j = 0; j < number_of_algos; j++)
+				{
+					outputFile<<range_of_path_length[a][c][number_of_trials+1][(i*number_of_algos)+j]<<",";
+					cout<<range_of_path_length[a][c][number_of_trials+1][(i*number_of_algos)+j]<<" ";
+				}
+				outputFile<<" "<<",";
+				outputFile<<" "<<",";
+				outputFile<<" "<<",";
+			}
+			outputFile<<endl;
+			cout<<endl;
+		}
+		outputFile.close();				
+		cout<<endl;
+
+		
+
+		cout<<"percent_coverage: "<<endl;
+		save_address = path + "Mean/mean_percent_coverage.csv";
+		outputFile.open(save_address);
+		for(int c = 0; c < comm_ranges.size(); c++)
+		{
+			outputFile<<"comm range: "<<comm_ranges[c]<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+		}
+		outputFile<<endl;
+		for(int c = 0; c < comm_ranges.size(); c++)
+		{
+			outputFile<<" "<<",";
+			outputFile<<"BSA-CM"<<",";
+			outputFile<<"SSB"<<",";
+			outputFile<<"BoB"<<",";
+			outputFile<<"MDFS"<<",";
+			outputFile<<"BnM"<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+		}
+		outputFile<<endl;
+		for(int i = 0; i < number_of_robots.size(); i++)
+		{
+			for(int c = 0; c < comm_ranges.size(); c++)
+			{
+				outputFile<<number_of_robots[i]<<",";
+				for(int j = 0; j < number_of_algos; j++)
+				{
+					outputFile<<percentage_coverage[a][c][number_of_trials+1][(i*number_of_algos)+j]<<",";
+					cout<<percentage_coverage[a][c][number_of_trials+1][(i*number_of_algos)+j]<<" ";
+				}
+				outputFile<<" "<<",";
+				outputFile<<" "<<",";
+				outputFile<<" "<<",";
+			}			
+			outputFile<<endl;
+			cout<<endl;
+		}
+		outputFile.close();				
+		cout<<endl;
+
+
+		cout<<"******************************************************\n";
+		cout<<"Standard Deviation matrix: \n";
+
+		
+
+		cout<<"Redundant Coverage: "<<endl;
+		save_address = path +"SD/sd_RedundantCoverage.csv";
+		outputFile.open(save_address);
+		for(int c = 0; c < comm_ranges.size(); c++)
+		{
+			outputFile<<"comm range: "<<comm_ranges[c]<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+		}
+		outputFile<<endl;
+		for(int c = 0; c < comm_ranges.size(); c++)
+		{
+			outputFile<<" "<<",";
+			outputFile<<"BSA-CM"<<",";
+			outputFile<<"SSB"<<",";
+			outputFile<<"BoB"<<",";
+			outputFile<<"MDFS"<<",";
+			outputFile<<"BnM"<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+		}
+		outputFile<<endl;
+
+		for(int i = 0; i < number_of_robots.size(); i++)
+		{
+			for(int c = 0; c < comm_ranges.size(); c++)
+			{
+				outputFile<<number_of_robots[i]<<",";
+				for(int j = 0; j < number_of_algos; j++)
+				{
+					outputFile<<repetedsteps[a][c][number_of_trials+2][(i*number_of_algos)+j]<<",";
+					cout<<repetedsteps[a][c][number_of_trials+2][(i*number_of_algos)+j]<<" ";
+				}	
+				outputFile<<" "<<",";
+				outputFile<<" "<<",";
+				outputFile<<" "<<",";
+			}			
+			outputFile<<endl;
+			cout<<endl;
+		}
+		outputFile.close();	
+		cout<<endl;
+
+
+		cout<<"range_of_path_length: "<<endl;
+		save_address = path + "SD/sd_range_of_path_length.csv";
+		outputFile.open(save_address);		
+		for(int c = 0; c < comm_ranges.size(); c++)
+		{
+			outputFile<<"comm range: "<<comm_ranges[c]<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+		}
+		outputFile<<endl;
+		for(int c = 0; c < comm_ranges.size(); c++)
+		{
+			outputFile<<" "<<",";
+			outputFile<<"BSA-CM"<<",";
+			outputFile<<"SSB"<<",";
+			outputFile<<"BoB"<<",";
+			outputFile<<"MDFS"<<",";
+			outputFile<<"BnM"<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+		}
+		outputFile<<endl;
+		for(int i = 0; i < number_of_robots.size(); i++)
+		{
+			for(int c = 0; c < comm_ranges.size(); c++)
+			{
+				outputFile<<number_of_robots[i]<<",";
+				for(int j = 0; j < number_of_algos; j++)
+				{
+					outputFile<<range_of_path_length[a][c][number_of_trials+2][(i*number_of_algos)+j]<<",";
+					cout<<range_of_path_length[a][c][number_of_trials+2][(i*number_of_algos)+j]<<" ";
+				}
+				outputFile<<" "<<",";
+				outputFile<<" "<<",";
+				outputFile<<" "<<",";
+			}
+			
+			outputFile<<endl;
+			cout<<endl;
+		}
+		outputFile.close();				
+		cout<<endl;
+
+		
+
+		cout<<"percentage_coverage: "<<endl;
+		save_address = path + "SD/sd_percentage_coverage.csv";
+		outputFile.open(save_address);
+		for(int c = 0; c < comm_ranges.size(); c++)
+		{
+			outputFile<<"comm range: "<<comm_ranges[c]<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+		}
+		outputFile<<endl;
+		for(int c = 0; c < comm_ranges.size(); c++)
+		{
+			outputFile<<" "<<",";
+			outputFile<<"BSA-CM"<<",";
+			outputFile<<"SSB"<<",";
+			outputFile<<"BoB"<<",";
+			outputFile<<"MDFS"<<",";
+			outputFile<<"BnM"<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+			outputFile<<" "<<",";
+		}
+		outputFile<<endl;
+		for(int i = 0; i < number_of_robots.size(); i++)
+		{
+			for(int c = 0; c < comm_ranges.size(); c++)
+			{
+				outputFile<<number_of_robots[i]<<",";
+				for(int j = 0; j < number_of_algos; j++)
+				{
+					outputFile<<percentage_coverage[a][c][number_of_trials+2][(i*number_of_algos)+j]<<",";
+					cout<<percentage_coverage[a][c][number_of_trials+2][(i*number_of_algos)+j]<<" ";
+				}
+				outputFile<<" "<<",";
+				outputFile<<" "<<",";
+				outputFile<<" "<<",";
+			}
+			
+			outputFile<<endl;
+			cout<<endl;
+		}
+		outputFile.close();				
+		cout<<endl;
+	}//for a							
+}
+
+
 int main(int argc, char* argv[]) {
   bool get_results = true;
-  get_results = false;
+ // get_results = false;
   if(get_results)
   {
-  	getSimulatioResults(1, 20, 5);//number of maps, trials, algos
+  	//getSimulatioResults(1, 20, 5);//number of maps, trials, algos
+  	getSimulatioResults2(1, 2, 5);
   	return 0;
   }
   AprilInterfaceAndVideoCapture testbed;  
@@ -1564,6 +2516,9 @@ int main(int argc, char* argv[]) {
   double start_t = tic();
   int wait_count = 0;
   int move_count = 0;
+  int comm_dist = 5;
+  cout<<"Enter the comm_dist: ";
+  cin>>comm_dist;
   while (true){    
   	total_iterations++;
     image = imread("../Maps/Basic.png");
@@ -1588,7 +2543,8 @@ int main(int argc, char* argv[]) {
       	//bots[i].plan.path_points.push_back(pt(r, c));
       	bots[i].plan.addGridCellToPath(r, c, testbed);
       	bots[i].plan.world_grid[r][c].steps = 1;      	
-      	bots[i].pose.x = r;
+      	bots[i].pose.x = r{
+;
       	bots[i].pose.y = c;
       	bots[i].pose.omega = rand()%4;
       	bots[i].plan.current_orient = bots[i].pose.omega;
@@ -1598,7 +2554,7 @@ int main(int argc, char* argv[]) {
     }
 */
     if(first_iter){     
-     //srand(time(0));
+     srand(time(0));
       for(int i = 0; i < bots.size(); i++)
       {
       	bots[i].plan.overlayGrid(testbed.detections,image_gray);
@@ -1618,7 +2574,7 @@ int main(int argc, char* argv[]) {
       	bots[i].plan.current_orient = bots[i].pose.omega;
       	bots[i].plan.robot_id = i;
       	bots[i].plan.robot_tag_id = i;
-      	bots[i].plan.comm_dist = 50;
+      	bots[i].plan.comm_dist = comm_dist;//feets
       }
     }
 
@@ -1647,8 +2603,7 @@ int main(int argc, char* argv[]) {
       default: bots[i].plan.BSACoverageIncremental(testbed,bots[i].pose, 2.5,planners);   
       }
       planners[i] = bots[i].plan;    
-    }
-    cv::waitKey(0);
+    } 
     double compute_end  = tic();
     time_to_compute += (compute_end-compute_start);
 
@@ -1913,7 +2868,8 @@ int main(int argc, char* argv[]) {
 	        cout<<"time spent in computation: "<<bots[time_left_to_move[i].second].plan.time_spent_in_computation<<endl;
 	        cout<<"time since last movement: "<<time_since_last_movement<<endl;
 	        cout<<"*******????????????***********\n";*/
-        	if((time_since_last_movement >= bots[time_left_to_move[i].second].plan.wait_time) && !check_collision_possibility(testbed, planners, bots, wheel_velocities, time_left_to_move[i].second) /*&& bots[time_left_to_move[i].second].plan.iter_wait <=0!*/) {
+        	//if((time_since_last_movement >= bots[time_left_to_move[i].second].plan.wait_time) && !check_collision_possibility(testbed, planners, bots, wheel_velocities, time_left_to_move[i].second) /*&& bots[time_left_to_move[i].second].plan.iter_wait <=0!*/) {
+        	if(1) {
         		//cout<<"Moving to next: \n";
         		move_count++;
         		//cout<<"type of movement: "<<endl;
@@ -2035,30 +2991,21 @@ int main(int argc, char* argv[]) {
   imshow(windowName,image);
 
   bool succesful_termination = 1;
+  int empty_cells = 0;
+  int covered_cells = 0;
   for(int i = 0; i < bots[0].plan.rcells; i++)
   {
     for(int j = 0; j < bots[0].plan.ccells; j++)
     {
-    	if(bots[0].plan.isEmpty(i,j) && bots[0].plan.world_grid[i][j].steps!=1)
+    	if(bots[0].plan.isEmpty(i,j))
         {
-            succesful_termination = 0;
-            cout<<"i, j: "<<i<<" "<<j<<endl;
-            break;
+            empty_cells++;
         }
     }    
-    if(succesful_termination == 0)
-    {
-       	break;
-    }
   }
-  if(succesful_termination!=1)
-  {
-  	cout<<"NOT FULLY COVERED!\nNOT FULLY COVERED!\nNOT FULLY COVERED!\nNOT FULLY COVERED!\nNOT FULLY COVERED!\nNOT FULLY COVERED!\nNOT FULLY COVERED!\nNOT FULLY COVERED!\nNOT FULLY COVERED!\n";
-  }
-  else
-  {
-  	cout<<"*******************\nSuccesful Termination!\n*******************\n";
-  }
+
+  
+
   cout<<"***********************\n***************\n";
     	int min_length = 100000000;
     	int max_length = 0;
@@ -2102,8 +3049,24 @@ int main(int argc, char* argv[]) {
 			{
 				repeatedCoverage++;
 			}
+			else
+			{
+				covered_cells++;
+			}
 		}
 	}
+	if(covered_cells!=empty_cells)
+	{
+		succesful_termination = 0;
+	}
+	  if(succesful_termination!=1)
+	  {
+	  	cout<<"NOT FULLY COVERED!\nNOT FULLY COVERED!\nNOT FULLY COVERED!\nNOT FULLY COVERED!\nNOT FULLY COVERED!\nNOT FULLY COVERED!\nNOT FULLY COVERED!\nNOT FULLY COVERED!\nNOT FULLY COVERED!\n";
+	  }
+	  else
+	  {
+	  	cout<<"*******************\nSuccesful Termination!\n*******************\n";
+	  }
 	//total_completion_time = time_to_compute + total_movement_time;
 	double complete_process = end_t - start_t;
 	total_movement_time = complete_process - time_to_compute;
@@ -2131,6 +3094,8 @@ int main(int argc, char* argv[]) {
 
 	cout<<"***************************\n";
 	cout<<"Results: "<<endl;
+	cout<<"empty_cells: "<<empty_cells<<endl;
+	cout<<"covered_cells: "<<covered_cells<<endl;
 	cout<<"total_iterations: "<<total_iterations<<endl;
 	cout<<"total_path_length: "<<(total_path_length/2)<<" ft."<<endl;//1 gird cell is 1/2 feets
 	cout<<"repeatedCoverage: "<<repeatedCoverage<<endl;
